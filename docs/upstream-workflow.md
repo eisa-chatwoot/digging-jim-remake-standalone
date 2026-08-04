@@ -137,7 +137,7 @@ git merge --abort
 - Keep `cmake/`, `assets/icons/`, and the path/packaging changes when resolving
   conflicts; they implement this fork's standalone distribution behavior.
 - Review `git status` before using `git add -A`.
-- Keep build output and local notes out of commits; `.gitignore` already covers
-  `build-macos/` and `docs/codex-notes/`.
+- Keep build output out of commits; `.gitignore` already covers `build-macos/`.
+  Documentation under `docs/` is intentionally versioned.
 - Use a pull request for upstream synchronization, especially when upstream
   changes touch CMake, runtime paths, assets, or licensing.

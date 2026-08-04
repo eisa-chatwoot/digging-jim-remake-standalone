@@ -1,5 +1,6 @@
 #include "HUD/MainMenu/MainMenu.h"
 #include "Utils/Counter.h"
+#include "Utils/Paths.h"
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -42,9 +43,10 @@ void HUD::MainMenu::MainMenu::load() {
         throw std::runtime_error("Error: Unable to load map loading texture.\n");
     }
 
-    std::ifstream file(CREDITS_TEXT_FILE, std::ios::binary);
+    const auto creditsFile = Paths::assetPath("credits.txt");
+    std::ifstream file(creditsFile, std::ios::binary);
     if (!file) {
-        throw std::runtime_error("Unable to load cave file: " + CREDITS_TEXT_FILE);
+        throw std::runtime_error("Unable to load credits file: " + creditsFile.string());
     }
 
     m_creditsText = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());

@@ -28,6 +28,7 @@ add_library(DiggingJimLib STATIC
     src/Shader/Shader.cpp
     src/Sound/Manager.cpp
     src/Utils/Counter.cpp
+    src/Utils/Paths.cpp
  )
 
 target_compile_features(DiggingJimLib PUBLIC cxx_std_17)

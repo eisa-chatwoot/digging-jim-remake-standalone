@@ -30,6 +30,9 @@ namespace HUD::Developer {
          */
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+        /// @brief Font used by the FPS text. It must outlive m_fpsText.
+        sf::Font m_font;
+
         /// @brief Text object showing FPS.
         sf::Text m_fpsText;
 

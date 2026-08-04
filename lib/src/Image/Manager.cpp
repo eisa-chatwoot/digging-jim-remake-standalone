@@ -1,31 +1,32 @@
 #include "Image/Manager.h"
+#include "Utils/Paths.h"
 #include <iostream>
 
 Image::Manager::Manager() {};
 
 void Image::Manager::loadAllImages() {
     // Load textures
-    loadTexture(Image::Texture::CaveHUD, "./assets/textures/Cave/hud.png");
-    loadTexture(Image::Texture::CaveLoadingTiles, "./assets/textures/Cave/loading_tiles.png");
-    loadTexture(Image::Texture::CaveNumbers, "./assets/textures/Cave/numbers.png");
-    loadTexture(Image::Texture::CaveTiles, "./assets/textures/Cave/tiles.png");
-    loadTexture(Image::Texture::GameCompleted, "./assets/textures/Game/completed.png");
-    loadTexture(Image::Texture::GameFont, "./assets/textures/Game/font.png");
-    loadTexture(Image::Texture::GameOver, "./assets/textures/Game/over.png");
-    loadTexture(Image::Texture::MainMenuBelow, "./assets/textures/MainMenu/below.png");
-    loadTexture(Image::Texture::MainMenuDial, "./assets/textures/MainMenu/dial.png");
-    loadTexture(Image::Texture::MainMenuLoadCaves, "./assets/textures/MainMenu/load_caves.png");
-    loadTexture(Image::Texture::MainMenuNumbers, "./assets/textures/MainMenu/numbers.png");
-    loadTexture(Image::Texture::MainMenuOnOff, "./assets/textures/MainMenu/on_off.png");
-    loadTexture(Image::Texture::MainMenuOptions, "./assets/textures/MainMenu/options.png");
-    loadTexture(Image::Texture::MainMenuSelectArrow, "./assets/textures/MainMenu/select_arrow.png");
-    loadTexture(Image::Texture::MainMenuTop, "./assets/textures/MainMenu/top.png");
-    loadTexture(Image::Texture::EditorFill,     "./assets/textures/Editor/fill.png");
-    loadTexture(Image::Texture::EditorLineFill,    "./assets/textures/Editor/linefill.png");
-    loadTexture(Image::Texture::EditorEllipseFill, "./assets/textures/Editor/ellipsefill.png");
-    loadTexture(Image::Texture::EditorCoords, "./assets/textures/Editor/coords.png");
-    loadTexture(Image::Texture::EditorTestButton, "./assets/textures/Editor/test_button.png");
-    loadTexture(Image::Texture::EditorMiniTiles, "./assets/textures/Editor/mini_tiles.png");
+    loadTexture(Image::Texture::CaveHUD, Paths::assetPath("textures/Cave/hud.png").string());
+    loadTexture(Image::Texture::CaveLoadingTiles, Paths::assetPath("textures/Cave/loading_tiles.png").string());
+    loadTexture(Image::Texture::CaveNumbers, Paths::assetPath("textures/Cave/numbers.png").string());
+    loadTexture(Image::Texture::CaveTiles, Paths::assetPath("textures/Cave/tiles.png").string());
+    loadTexture(Image::Texture::GameCompleted, Paths::assetPath("textures/Game/completed.png").string());
+    loadTexture(Image::Texture::GameFont, Paths::assetPath("textures/Game/font.png").string());
+    loadTexture(Image::Texture::GameOver, Paths::assetPath("textures/Game/over.png").string());
+    loadTexture(Image::Texture::MainMenuBelow, Paths::assetPath("textures/MainMenu/below.png").string());
+    loadTexture(Image::Texture::MainMenuDial, Paths::assetPath("textures/MainMenu/dial.png").string());
+    loadTexture(Image::Texture::MainMenuLoadCaves, Paths::assetPath("textures/MainMenu/load_caves.png").string());
+    loadTexture(Image::Texture::MainMenuNumbers, Paths::assetPath("textures/MainMenu/numbers.png").string());
+    loadTexture(Image::Texture::MainMenuOnOff, Paths::assetPath("textures/MainMenu/on_off.png").string());
+    loadTexture(Image::Texture::MainMenuOptions, Paths::assetPath("textures/MainMenu/options.png").string());
+    loadTexture(Image::Texture::MainMenuSelectArrow, Paths::assetPath("textures/MainMenu/select_arrow.png").string());
+    loadTexture(Image::Texture::MainMenuTop, Paths::assetPath("textures/MainMenu/top.png").string());
+    loadTexture(Image::Texture::EditorFill, Paths::assetPath("textures/Editor/fill.png").string());
+    loadTexture(Image::Texture::EditorLineFill, Paths::assetPath("textures/Editor/linefill.png").string());
+    loadTexture(Image::Texture::EditorEllipseFill, Paths::assetPath("textures/Editor/ellipsefill.png").string());
+    loadTexture(Image::Texture::EditorCoords, Paths::assetPath("textures/Editor/coords.png").string());
+    loadTexture(Image::Texture::EditorTestButton, Paths::assetPath("textures/Editor/test_button.png").string());
+    loadTexture(Image::Texture::EditorMiniTiles, Paths::assetPath("textures/Editor/mini_tiles.png").string());
 }
 
 void Image::Manager::loadIcon(const Image::Icon& icon, const std::string& filename) {

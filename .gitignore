@@ -1,4 +1,6 @@
 build
+build-macos
+build-windows
 build-linux
 out
 .cache
@@ -8,3 +10,4 @@ out
 vcpkg_installed
 caves/*.cav
 docs/research/
+docs/codex-notes/

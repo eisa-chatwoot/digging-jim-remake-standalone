@@ -7,9 +7,6 @@
 #include "Utils/Counter.h"
 #include <string>
 
-/// @brief The path to the credits text file.
-const std::string CREDITS_TEXT_FILE = "./assets/credits.txt";
-
 namespace HUD::MainMenu {
 
     /// @brief Menu selection options on the main menu.

@@ -8,12 +8,6 @@
 #include "Cave/Map/Map.h"
 #include "Game/Game.h"
 
-/// @brief The directory containing the original bundled cave files.
-const std::string CAVE_DIRECTORY = "./assets/data/";
-
-/// @brief The directory where user-created cave files are stored.
-const std::string USER_CAVES_DIRECTORY = "./caves/";
-
 /// @brief The name of the original 100 caves file.
 const std::string ORIGINAL_CAVE_FILE = "originals.cav";
 
@@ -37,7 +31,7 @@ namespace Cave {
          * @brief Loads all available cave files from the cave directory.
          *
          * @details
-         * This method scans the configured cave directory (`CAVE_DIRECTORY`) for all
+         * This method scans the bundled cave directory for all
          * `.cav` files. If the special file defined by `ORIGINAL_CAVE_FILE` is found,
          * it is inserted at the beginning of the list to ensure priority loading.
          *

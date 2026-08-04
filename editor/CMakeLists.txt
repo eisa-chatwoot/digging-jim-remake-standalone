@@ -19,6 +19,24 @@ target_include_directories(DiggingJimBuilder PRIVATE
 )
 
 target_link_libraries(DiggingJimBuilder PRIVATE DiggingJimLib)
+
+if(APPLE)
+    digging_jim_configure_macos_bundle(
+        DiggingJimBuilder
+        "Digging Jim Builder"
+        "com.retrospade.diggingjim.builder"
+        "DiggingJimBuilder"
+    )
+    add_dependencies(DiggingJimBuilder DiggingJim)
+    add_custom_command(
+        TARGET DiggingJimBuilder POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:DiggingJim>
+                "$<TARGET_BUNDLE_CONTENT_DIR:DiggingJimBuilder>/MacOS/DiggingJim"
+        COMMENT "Embedding the game test helper in DiggingJimBuilder.app"
+        VERBATIM
+    )
+endif()
 if(WIN32)
     target_link_libraries(DiggingJimBuilder PRIVATE dwmapi)
     target_link_options(DiggingJimBuilder PRIVATE
@@ -27,11 +45,13 @@ if(WIN32)
     )
 endif()
 
-add_custom_command(
-    TARGET DiggingJimBuilder POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:DiggingJimBuilder>/assets
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:DiggingJimBuilder>/caves
-)
+if(NOT APPLE)
+    add_custom_command(
+        TARGET DiggingJimBuilder POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/assets
+                $<TARGET_FILE_DIR:DiggingJimBuilder>/assets
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                $<TARGET_FILE_DIR:DiggingJimBuilder>/caves
+    )
+endif()

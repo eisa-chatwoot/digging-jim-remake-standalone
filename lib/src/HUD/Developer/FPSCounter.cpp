@@ -1,10 +1,11 @@
 #include "HUD/Developer/FPSCounter.h"
+#include "Utils/Paths.h"
 #include <sstream>
 #include <iomanip>
 
-const sf::Font tahomaFont("./assets/fonts/tahoma.ttf");
-
-HUD::Developer::FPSCounter::FPSCounter() : m_fpsText(tahomaFont)
+HUD::Developer::FPSCounter::FPSCounter()
+    : m_font(Paths::assetPath("fonts/tahoma.ttf").string()),
+      m_fpsText(m_font)
 {
     m_fpsText.setCharacterSize(14);
     m_fpsText.setFillColor(sf::Color::White);

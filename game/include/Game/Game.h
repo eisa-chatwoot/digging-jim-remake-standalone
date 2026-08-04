@@ -19,9 +19,6 @@ const unsigned int SCREEN_WIDTH = 640u;
 /// @brief The height of the window.
 const unsigned int SCREEN_HEIGHT = 480u;
 
-/// @brief The path to the settings file.
-const std::string SETTINGS_FILE = "./assets/settings/settings.txt";
-
 /// @brief The initial cave to begin at.
 constexpr int INITIAL_CAVE = 1;
 

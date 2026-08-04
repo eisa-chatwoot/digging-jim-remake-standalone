@@ -1,6 +1,7 @@
 #include "HUD/Toolbar.h"
 #include "Editor/Editor.h"
 #include "Cave/Entity/Entity.h"
+#include "Utils/Paths.h"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -12,7 +13,7 @@
 #endif
 #include "tinyfiledialogs.h"
 
-static void openUrl(const char* path)
+static void openUrl(const std::filesystem::path& path)
 {
     std::string absPath = std::filesystem::absolute(path).string();
 #ifdef _WIN32
@@ -57,7 +58,7 @@ static void openUrl(const char* path)
 
 HUD::Editor::Toolbar::Toolbar(::Editor* editor) : m_editor(editor)
 {
-    std::ifstream f("./assets/builder.txt");
+    std::ifstream f(Paths::assetPath("builder.txt"));
     if (f)
     {
         std::ostringstream ss;
@@ -276,9 +277,9 @@ void HUD::Editor::Toolbar::drawHelpMenu()
         ImGui::PushStyleColor(ImGuiCol_HeaderActive,  m_clrNavy);
         ImGui::Indent(m_menuIndent);
         if (ImGui::MenuItem("Contents..."))
-            openUrl("./assets/manual/manual.html");
+            openUrl(Paths::assetPath("manual/manual.html"));
         if (ImGui::MenuItem("Object Reference..."))
-            openUrl("./assets/manual/enviroment.html");
+            openUrl(Paths::assetPath("manual/enviroment.html"));
         ImGui::Separator();
         if (ImGui::MenuItem("About...")) m_showAbout = true;
         ImGui::Unindent(m_menuIndent);

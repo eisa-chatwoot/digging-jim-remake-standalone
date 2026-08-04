@@ -9,6 +9,15 @@ target_include_directories(DiggingJim PRIVATE include)
 
 target_link_libraries(DiggingJim PRIVATE DiggingJimLib)
 
+if(APPLE)
+    digging_jim_configure_macos_bundle(
+        DiggingJim
+        "Digging Jim"
+        "com.retrospade.diggingjim"
+        "DiggingJim"
+    )
+endif()
+
 if(WIN32)
     target_link_options(DiggingJim PRIVATE
         $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup>
@@ -16,11 +25,13 @@ if(WIN32)
     )
 endif()
 
-add_custom_command(
-    TARGET DiggingJim POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:DiggingJim>/assets
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:DiggingJim>/caves
-)
+if(NOT APPLE)
+    add_custom_command(
+        TARGET DiggingJim POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/assets
+                $<TARGET_FILE_DIR:DiggingJim>/assets
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                $<TARGET_FILE_DIR:DiggingJim>/caves
+    )
+endif()

@@ -2,16 +2,17 @@
 #include <iostream>
 #include <string>
 #include "Shader/Shader.h"
+#include "Utils/Paths.h"
 
 Shader::Shader::Shader(Game* game) : m_game(game) {}
 
 void Shader::Shader::loadAllShaders() {
-    const std::string& shaderFilename = "./assets/shaders/tint.frag";
+    const std::string shaderFilename = Paths::assetPath("shaders/tint.frag").string();
     if (!m_shader.loadFromFile(shaderFilename, sf::Shader::Type::Fragment)) {
         throw std::runtime_error("Error: Unable to load shader .frag file: " + shaderFilename + "\n");
     }
 
-    const std::string& defaultFilename = "./assets/shaders/tint.frag";
+    const std::string defaultFilename = Paths::assetPath("shaders/tint.frag").string();
     if (!m_default.loadFromFile(defaultFilename, sf::Shader::Type::Fragment)) {
         throw std::runtime_error("Error: Unable to load shader .frag file: " + defaultFilename + "\n");
     }

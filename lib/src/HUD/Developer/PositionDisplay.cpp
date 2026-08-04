@@ -1,9 +1,10 @@
 #include "HUD/Developer/PositionDisplay.h"
+#include "Utils/Paths.h"
 #include <sstream>
 
-const sf::Font tahomaFont("./assets/fonts/tahoma.ttf");
-
-HUD::Developer::PositionDisplay::PositionDisplay() : m_positionText(tahomaFont)
+HUD::Developer::PositionDisplay::PositionDisplay()
+    : m_font(Paths::assetPath("fonts/tahoma.ttf").string()),
+      m_positionText(m_font)
 {
     m_positionText.setCharacterSize(14);
     m_positionText.setFillColor(sf::Color::White);

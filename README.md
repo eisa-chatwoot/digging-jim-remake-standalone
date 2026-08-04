@@ -5,69 +5,41 @@
 </p>
 
 <p align="center">
-  <a href="../../releases"><img src="https://img.shields.io/github/v/release/chrismalcolm/digging-jim-remake?style=for-the-badge&label=Download&color=brightgreen" alt="Download"></a>
-  <a href="https://retrospade.itch.io/digging-jim"><img src="https://img.shields.io/badge/itch.io-Play-FA5C5C?style=for-the-badge&logo=itch.io&logoColor=white" alt="itch.io"></a>
+  <img src="https://img.shields.io/badge/Distribution-Self--contained%20packages-6E56CF?style=for-the-badge" alt="Self-contained distribution packages">
+  <a href="https://github.com/chrismalcolm/digging-jim-remake"><img src="https://img.shields.io/badge/Based%20on-chrismalcolm%2Fdigging--jim--remake-24292F?style=for-the-badge&logo=github&logoColor=white" alt="Based on chrismalcolm/digging-jim-remake"></a>
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus" alt="C++17">
   <img src="https://img.shields.io/badge/SFML-3.0-red?style=for-the-badge" alt="SFML 3.0">
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=for-the-badge" alt="Platform">
+  <img src="https://img.shields.io/badge/Standalone-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Standalone macOS distribution">
 </p>
 
 <p align="center">
-  A fan-made C++ remake of <strong>Digging Jim</strong> — a Boulder Dash‑style game originally developed by <em>Persei Entertainment</em> in 1999.
+  An unofficial, non-commercial C++ fan remake of <strong>Digging Jim</strong> — a Boulder Dash‑style game originally developed by <em>Persei Entertainment</em> in 1999.
   <br>
-  The original no longer runs well on modern hardware, and was Windows-only. This remake brings Jim back faithfully — and cross-platform to Windows, Linux, and macOS!
+  This fork focuses on self-contained, independently runnable distribution packages. Platform support will expand over time.
 </p>
 
 ---
 
-## 🎮 Download & Play
+## 📦 Distribution
 
-**No build required.** Grab the latest release for your platform from the [**Releases**](../../releases) page, extract the zip, and you're in.
+This repository is for self-contained, independently runnable packages.
 
-| Platform | Instructions |
-| :--- | :--- |
-| **Windows** | Run `DiggingJim.exe` directly — no setup needed. |
-| **Linux** | Install runtime libs (see below), then `./DiggingJim` |
-| **macOS** | Install wxWidgets via Homebrew (see below), then `./DiggingJim` |
+For the original non-standalone releases, platform-specific runtime dependencies, and standard source-build experience on any platform, use the upstream [**chrismalcolm/digging-jim-remake**](https://github.com/chrismalcolm/digging-jim-remake) project.
 
-<details>
-<summary><strong>Linux runtime dependencies</strong></summary>
+---
 
-**Ubuntu / Debian (modern):**
-```bash
-sudo apt-get install libopenal1 libflac12t64 libvorbis0a libogg0 libfreetype6 libwxgtk3.2-1t64
-./DiggingJim
-```
+## ✨ Improvements in This Fork
 
-**Ubuntu / Debian (older — if the above packages aren't available):**
-```bash
-sudo apt-get install libopenal1 libflac8 libvorbis0a libogg0 libfreetype6 libwxgtk3.0-gtk3-0v5
-./DiggingJim
-```
+- Refined high-resolution application icons for both Digging Jim and Digging Jim Builder.
+- Fixed packaged-app resource discovery so assets load reliably outside the source tree.
+- Fixed shutdown resource lifetimes to prevent the packaged app from reporting a crash after a normal exit.
 
-**Fedora / RHEL:**
-```bash
-sudo dnf install openal-soft flac-libs libvorbis libogg freetype wxGTK
-./DiggingJim
-```
+---
 
-**Arch:**
-```bash
-sudo pacman -S openal flac libvorbis libogg freetype2 wxwidgets-gtk3
-./DiggingJim
-```
+## 🚧 TODO
 
-</details>
-
-<details>
-<summary><strong>macOS runtime dependencies</strong></summary>
-
-```bash
-brew install wxwidgets
-./DiggingJim
-```
-
-</details>
+- [ ] Create a standalone Windows distribution package.
+- [ ] Create a standalone Linux distribution package.
 
 ---
 
@@ -128,7 +100,8 @@ Each cave presents a grid of dirt, rocks, enemies, and glittering diamonds. To e
 ## ⚡ Features
 
 - **Faithful recreation** of all 100 original Persei Entertainment caves
-- **Cross-platform** — Windows, Linux (x64 & ARM64), and macOS
+- **Cross-platform source** — Windows, Linux (x64 & ARM64), and macOS
+- **Standalone distribution** — this fork focuses on independently runnable packages, with additional platform packages planned
 - **Controller & joystick support** added alongside original keyboard controls
 - **Cave Editor** — build your own cave files with a full GUI editor (undo/redo; cave properties; test-in-game; developer mode for extended tools)
 - **Original `.cav` file format** — backwards-compatible with cave files from the original 1999 game
@@ -140,9 +113,9 @@ Each cave presents a grid of dirt, rocks, enemies, and glittering diamonds. To e
 
 ## 🕵️ Cheat Mode
 
-The original game had a cheat mode activated with `F12`. This remake maps activation to `F11`, and expands the available cheats.
+The original game had a cheat mode activated with `F12`. This remake keeps `F12` as the activation key and expands the available cheats.
 
-Press `F11` to activate, then:
+Press `F12` to activate, then:
 
 | Key | Action |
 | :--- | :--- |
@@ -189,36 +162,50 @@ When testing a cave from the editor with developer mode active, the game also la
 
 ---
 
-## 🏗️ Building from Source
+## 🏗️ Building a Standalone Distribution
 
-### Prerequisites
+This repository documents only builds that create independently runnable distribution packages. For ordinary source builds or non-standalone releases on any platform, use the [upstream project](https://github.com/chrismalcolm/digging-jim-remake).
 
-- CMake 3.16+
-- A C++17-capable compiler (MSVC, GCC, Clang)
-- Platform dependencies (see below)
+### macOS
 
-**Windows** — SFML and wxWidgets are pulled via vcpkg automatically during configure.
+The current standalone distribution target is macOS. The build machine needs macOS with Xcode Command Line Tools, CMake 3.28+, and Homebrew wxWidgets:
 
-**Linux:**
-```bash
-sudo apt-get install libxrandr-dev libxcursor-dev libxi-dev libudev-dev \
-  libgl1-mesa-dev libegl1-mesa-dev libopenal-dev \
-  libflac-dev libvorbis-dev libogg-dev libfreetype-dev libwxgtk3.2-dev
-```
-
-**macOS:**
 ```bash
 brew install wxwidgets
 ```
 
-### Build
+Build the `macos_bundle` target to embed the game assets, wxWidgets, and all non-system dynamic-library dependencies. Recipients do **not** need Homebrew or wxWidgets installed.
 
 ```bash
-cmake -B build -DBUILD_SHARED_LIBS=FALSE
-cmake --build build --config Release
+cmake -S . -B build-macos \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=OFF
+cmake --build build-macos --target macos_bundle -j 4
 ```
 
-Binaries land in `build/bin/`. Copy the `assets/` folder and a `caves/` directory alongside them before running.
+The resulting apps are:
+
+- `build-macos/bin/DiggingJim.app`
+- `build-macos/bin/DiggingJimBuilder.app`
+
+The Builder app embeds a game helper, so its **Test** action also works independently. Both bundles include `LICENSE.md` and receive an ad hoc signature by default. For external distribution, configure with a Developer ID identity and notarize the finished apps:
+
+```bash
+cmake -S . -B build-macos -DBUILD_SHARED_LIBS=OFF \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DDIGGING_JIM_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+cmake --build build-macos --target macos_bundle -j 4
+```
+
+### Windows and Linux
+
+Standalone package targets for Windows and Linux are planned but are not available yet.
+
+---
+
+## 🙏 Acknowledgements
+
+This project builds on [**chrismalcolm/digging-jim-remake**](https://github.com/chrismalcolm/digging-jim-remake), the open-source recreation created by Christopher Malcolm. Thank you to **Christopher Malcolm** for making that work available as the foundation for this fork. Modifications in this repository remain subject to the same [CC BY-NC-SA 4.0](./LICENSE.md) license.
 
 ---
 
@@ -230,7 +217,11 @@ Binaries land in `build/bin/`. Copy the `assets/` folder and a `caves/` director
 - Sound: **Henrik Sundberg**, **Peter Prøst**
 - Cave Design: **Robert Kjettrup**, **Peter Prøst**, **Anders Hansen**
 
-**Remake (2025)**
+**Upstream Remake (2025)**
 - Recreation: **Christopher Malcolm**
+
+**Standalone Distribution Fork (2026)**
+
+- Packaging, application icons, and bug fixes: **FlatWhite**
 
 > This project is a non-commercial fan tribute. It is not affiliated with or endorsed by Persei Entertainment. Please support the original release where possible.

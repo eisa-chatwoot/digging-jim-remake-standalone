@@ -1,7 +1,9 @@
 #include "Cave/Manager/Manager.h"
 #include "Cave/Manager/File.h"
 #include "Cave/Properties/Properties.h"
+#include "Utils/Paths.h"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <array>
@@ -13,14 +15,17 @@
 Cave::Manager::Manager(Game* game) : m_game(game) {}
 
 void Cave::Manager::load() {
-    if (!std::filesystem::exists(CAVE_DIRECTORY) || !std::filesystem::is_directory(CAVE_DIRECTORY)) {
-        throw std::runtime_error("Invalid directory: " + CAVE_DIRECTORY);
+    const auto bundledCavesDirectory = Paths::assetPath("data");
+    const auto userCavesDirectory = Paths::userCavesDirectory();
+
+    if (!std::filesystem::exists(bundledCavesDirectory) || !std::filesystem::is_directory(bundledCavesDirectory)) {
+        throw std::runtime_error("Invalid directory: " + bundledCavesDirectory.string());
     }
 
     // Collect bundled cave files — originals.cav always goes first
     std::vector<std::string> bundledFiles;
     std::string originalsFile;
-    for (const auto& entry : std::filesystem::directory_iterator(CAVE_DIRECTORY)) {
+    for (const auto& entry : std::filesystem::directory_iterator(bundledCavesDirectory)) {
         if (entry.is_regular_file() && entry.path().extension() == ".cav") {
             std::string filename = entry.path().filename().string();
             if (filename == ORIGINAL_CAVE_FILE)
@@ -34,7 +39,7 @@ void Cave::Manager::load() {
 
     for (auto& filename : bundledFiles) {
         try {
-            m_cavesData.push_back(Cave::File::loadFromFile(CAVE_DIRECTORY, filename));
+            m_cavesData.push_back(Cave::File::loadFromFile(bundledCavesDirectory, filename));
         }
         catch (const std::exception& e) {
             std::cerr << "Warning: Failed to load cave file '" << filename << "': " << e.what() << "\n";
@@ -42,23 +47,32 @@ void Cave::Manager::load() {
     }
 
     if (m_cavesData.empty()) {
-        throw std::runtime_error("No valid .cav files found in directory: " + CAVE_DIRECTORY);
+        throw std::runtime_error("No valid .cav files found in directory: " + bundledCavesDirectory.string());
     }
 
-    // Collect user cave files from the caves/ directory (optional — don't throw if missing)
-    if (std::filesystem::exists(USER_CAVES_DIRECTORY) && std::filesystem::is_directory(USER_CAVES_DIRECTORY)) {
-        for (const auto& entry : std::filesystem::directory_iterator(USER_CAVES_DIRECTORY)) {
+    const auto loadUserCaves = [this](const std::filesystem::path& directory) {
+        if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)) return;
+
+        for (const auto& entry : std::filesystem::directory_iterator(directory)) {
             if (entry.is_regular_file() && entry.path().extension() == ".cav") {
                 std::string filename = entry.path().filename().string();
                 try {
-                    m_cavesData.push_back(Cave::File::loadFromFile(USER_CAVES_DIRECTORY, filename));
+                    m_cavesData.push_back(Cave::File::loadFromFile(directory, filename));
                 }
                 catch (const std::exception& e) {
                     std::cerr << "Warning: Failed to load user cave file '" << filename << "': " << e.what() << "\n";
                 }
             }
         }
-    }
+    };
+
+    // Collect user cave files from the per-user data directory (optional — don't throw if missing).
+    loadUserCaves(userCavesDirectory);
+
+    // Keep caves from the pre-bundle layout working for existing users and development builds.
+    const auto legacyCavesDirectory = Paths::executableDirectory() / "caves";
+    if (legacyCavesDirectory != userCavesDirectory)
+        loadUserCaves(legacyCavesDirectory);
 }
 
 std::vector<std::string> Cave::Manager::getCaveFiles() {

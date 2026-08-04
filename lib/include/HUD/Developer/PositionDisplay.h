@@ -35,6 +35,9 @@ namespace HUD::Developer {
          */
         virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
+        /// @brief Font used by the position text. It must outlive m_positionText.
+        sf::Font m_font;
+
         /// @brief Text showing the object's name and coordinates.
         sf::Text m_positionText;
 

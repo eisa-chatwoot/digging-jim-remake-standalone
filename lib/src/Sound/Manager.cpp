@@ -1,4 +1,5 @@
 #include "Sound/Manager.h"
+#include "Utils/Paths.h"
 #include <algorithm>
 #include <iostream>
 
@@ -6,26 +7,26 @@ Sound::Manager::Manager() {}
 
 void Sound::Manager::loadAllSounds() {
     // Load sound effects
-    loadSound(Sound::Effect::Amoeba, "./assets/sounds/Effect/amoeba.wav");
-    loadSound(Sound::Effect::Break, "./assets/sounds/Effect/break.wav");
-    loadSound(Sound::Effect::CaveGullExplosion, "./assets/sounds/Effect/cave_gull_explosion.wav");
-    loadSound(Sound::Effect::Collect, "./assets/sounds/Effect/collect.wav");
-    loadSound(Sound::Effect::DiamondDrop, "./assets/sounds/Effect/diamond_drop.wav");
-    loadSound(Sound::Effect::DiamondLand, "./assets/sounds/Effect/diamond_land.wav");
-    loadSound(Sound::Effect::Dig, "./assets/sounds/Effect/dig.wav");
-    loadSound(Sound::Effect::Drop, "./assets/sounds/Effect/drop.wav");
-    loadSound(Sound::Effect::Explosion, "./assets/sounds/Effect/explosion.wav");
-    loadSound(Sound::Effect::Land, "./assets/sounds/Effect/land.wav");
-    loadSound(Sound::Effect::MagicWall, "./assets/sounds/Effect/magic_wall.wav");
-    loadSound(Sound::Effect::Open, "./assets/sounds/Effect/open.wav");
-    loadSound(Sound::Effect::Plasma, "./assets/sounds/Effect/plasma.wav");
-    loadSound(Sound::Effect::Tube, "./assets/sounds/Effect/tube.wav");
-    loadSound(Sound::Effect::Unlock, "./assets/sounds/Effect/unlock.wav");
-    loadSound(Sound::Effect::Yahoo, "./assets/sounds/Effect/yahoo.wav");
-    loadSound(Sound::Effect::Yippee, "./assets/sounds/Effect/yippee.wav");
+    loadSound(Sound::Effect::Amoeba, Paths::assetPath("sounds/Effect/amoeba.wav").string());
+    loadSound(Sound::Effect::Break, Paths::assetPath("sounds/Effect/break.wav").string());
+    loadSound(Sound::Effect::CaveGullExplosion, Paths::assetPath("sounds/Effect/cave_gull_explosion.wav").string());
+    loadSound(Sound::Effect::Collect, Paths::assetPath("sounds/Effect/collect.wav").string());
+    loadSound(Sound::Effect::DiamondDrop, Paths::assetPath("sounds/Effect/diamond_drop.wav").string());
+    loadSound(Sound::Effect::DiamondLand, Paths::assetPath("sounds/Effect/diamond_land.wav").string());
+    loadSound(Sound::Effect::Dig, Paths::assetPath("sounds/Effect/dig.wav").string());
+    loadSound(Sound::Effect::Drop, Paths::assetPath("sounds/Effect/drop.wav").string());
+    loadSound(Sound::Effect::Explosion, Paths::assetPath("sounds/Effect/explosion.wav").string());
+    loadSound(Sound::Effect::Land, Paths::assetPath("sounds/Effect/land.wav").string());
+    loadSound(Sound::Effect::MagicWall, Paths::assetPath("sounds/Effect/magic_wall.wav").string());
+    loadSound(Sound::Effect::Open, Paths::assetPath("sounds/Effect/open.wav").string());
+    loadSound(Sound::Effect::Plasma, Paths::assetPath("sounds/Effect/plasma.wav").string());
+    loadSound(Sound::Effect::Tube, Paths::assetPath("sounds/Effect/tube.wav").string());
+    loadSound(Sound::Effect::Unlock, Paths::assetPath("sounds/Effect/unlock.wav").string());
+    loadSound(Sound::Effect::Yahoo, Paths::assetPath("sounds/Effect/yahoo.wav").string());
+    loadSound(Sound::Effect::Yippee, Paths::assetPath("sounds/Effect/yippee.wav").string());
 
     // Load music
-    loadMusic(Sound::Music::MainMenu, "./assets/sounds/Music/main_menu.wav");
+    loadMusic(Sound::Music::MainMenu, Paths::assetPath("sounds/Music/main_menu.wav").string());
 }
 
 void Sound::Manager::loadSound(const Sound::Effect& effect, const std::string& filename) {

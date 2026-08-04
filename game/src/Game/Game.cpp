@@ -9,6 +9,7 @@
 #include "Cave/Map/Map.h"
 #include "Cave/Manager/Manager.h"
 #include "Utils/Counter.h"
+#include "Utils/Paths.h"
 
 #include <algorithm>
 #include <iostream>
@@ -43,7 +44,7 @@ Game::Game() :
     m_caveFileIndex(0),
     m_chosenCaveNumber(INITIAL_CAVE)
 {
-    m_settings = loadGameOptionsFromFile(SETTINGS_FILE);
+    m_settings = loadGameOptionsFromFile(Paths::settingsFile().string());
 };
 
 // ----------------------------------------------------------------------------------
@@ -341,14 +342,16 @@ void Game::mainGameLoop() {
     
 
     {
+#if !defined(__APPLE__)
         sf::Image largeIcon;
-        if (largeIcon.loadFromFile("./assets/icons/DiggingJim/large_png.png"))
+        if (largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJim/large_png.png").string()))
             window.setIcon(largeIcon);
+#endif
 #ifdef _WIN32
         {
             HWND hwnd = window.getNativeHandle();
             sf::Image smallIcon;
-            if (smallIcon.loadFromFile("./assets/icons/DiggingJim/small_png.png"))
+            if (smallIcon.loadFromFile(Paths::assetPath("icons/DiggingJim/small_png.png").string()))
             {
                 const sf::Vector2u sz = smallIcon.getSize();
                 BITMAPV5HEADER bi  = {};
@@ -817,5 +820,5 @@ void Game::commitGameOptions(const GameSettings& options) {
     soundManager.setVolume(options.audioVolume);
     if (startMusic) sendSignal(GameSignal::StartMusic);
     if (stopMusic) sendSignal(GameSignal::StopMusic);
-    saveGameOptionsToFile(m_settings, SETTINGS_FILE);
+    saveGameOptionsToFile(m_settings, Paths::settingsFile().string());
 }

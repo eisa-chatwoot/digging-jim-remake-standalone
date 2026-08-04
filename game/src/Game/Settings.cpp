@@ -1,5 +1,6 @@
 #include "Game/Game.h"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -84,6 +85,12 @@ GameSettings Game::loadGameOptionsFromFile(const std::string& path) {
 
 bool Game::saveGameOptionsToFile(const GameSettings& opts, const std::string& path) {
     try {
+        const auto parentDirectory = std::filesystem::path(path).parent_path();
+        if (!parentDirectory.empty()) {
+            std::error_code error;
+            std::filesystem::create_directories(parentDirectory, error);
+            if (error) return false;
+        }
         std::ofstream out(path, std::ios::out | std::ios::trunc);
         if (!out.is_open()) {
             return false; // fail silently

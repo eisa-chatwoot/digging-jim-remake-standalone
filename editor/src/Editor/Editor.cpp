@@ -4,6 +4,7 @@
 #include "Camera/Camera.h"
 #include "HUD/Panel.h"
 #include "Utils/Counter.h"
+#include "Utils/Paths.h"
 #include "HUD/Toolbar.h"
 #include "Shader/Shader.h"
 
@@ -20,35 +21,10 @@
 #include "tinyfiledialogs.h"
 #include "Cave/Manager/File.h"
 #include "Cave/Manager/Data.h"
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
 #if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <sys/wait.h>
 #endif
-
-static std::string getExeDir() {
-    std::filesystem::path exePath;
-#if defined(_WIN32)
-    wchar_t buf[4096];
-    DWORD len = GetModuleFileNameW(nullptr, buf, 4096);
-    if (len > 0) exePath = std::filesystem::path(buf);
-#elif defined(__APPLE__)
-    char buf[4096];
-    uint32_t size = sizeof(buf);
-    if (_NSGetExecutablePath(buf, &size) == 0) exePath = std::filesystem::path(buf);
-#elif defined(__linux__)
-    char buf[4096];
-    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
-    if (len != -1) { buf[len] = '\0'; exePath = std::filesystem::path(buf); }
-#endif
-    return exePath.empty() ? "." : exePath.parent_path().string();
-}
-
-static std::string getCavesDir() {
-    return (std::filesystem::path(getExeDir()) / "caves" / "").string();
-}
 
 // -----------------------------------------------------------------------
 // Virtual screen layout (all sizes in pixels):
@@ -269,11 +245,17 @@ void Editor::saveFileAs(Cave::Map& map, Cave::File& loadedFile, int currentCaveI
 {
     syncCurrentCave(map, loadedFile, currentCaveIndex);
 
+    if (!Paths::ensureUserCavesDirectory())
+    {
+        tinyfd_messageBox("Error saving cave file", "Unable to create the user cave directory.", "ok", "error", 1);
+        return;
+    }
+
     const char* filterPatterns[] = {"*.cav"};
     // Use a full path including a placeholder filename so Windows common dialog
     // opens at the caves directory regardless of its remembered last-used location.
     std::string defaultPathStr = m_savedFilePath.empty()
-        ? (std::filesystem::path(getCavesDir()) / "untitled.cav").string()
+        ? (Paths::userCavesDirectory() / "untitled.cav").string()
         : m_savedFilePath;
     const char* result = tinyfd_saveFileDialog("Save Cave File", defaultPathStr.c_str(), 1, filterPatterns, "Cave Files");
     if (!result) return;
@@ -449,12 +431,15 @@ bool Editor::run()
     sf::RenderTexture rt(sf::Vector2u(WIN_W, WIN_H));
     window.setFramerateLimit(60);
 
+#if !defined(__APPLE__)
     sf::Image smallIcon, largeIcon;
-    (void)smallIcon.loadFromFile("./assets/icons/DiggingJimBuilder/small_png.png");
-    (void)largeIcon.loadFromFile("./assets/icons/DiggingJimBuilder/large_png.png");
+    (void)smallIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/small_png.png").string());
+    (void)largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/large_png.png").string());
+#endif
 
     auto applyIcons = [&]()
     {
+#if !defined(__APPLE__)
         if (!largeIcon.getSize().x) return;
         window.setIcon(largeIcon);
 #ifdef _WIN32
@@ -502,13 +487,15 @@ bool Editor::run()
             }
         }
 #endif
+#endif
     };
     applyIcons();
 
     (void)ImGui::SFML::Init(window, /* loadDefaultFont= */ false);
 
     ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->AddFontFromFileTTF("./assets/fonts/tahoma.ttf", 12.f);
+    const std::string fontPath = Paths::assetPath("fonts/tahoma.ttf").string();
+    io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 12.f);
     (void)ImGui::SFML::UpdateFontTexture();
 
     bool isFullscreen = false;
@@ -536,7 +523,7 @@ bool Editor::run()
         applyIcons();
         { sf::Cursor arrow(sf::Cursor::Type::Arrow); window.setMouseCursor(arrow); }
         (void)ImGui::SFML::Init(window, /* loadDefaultFont= */ false);
-        ImGui::GetIO().Fonts->AddFontFromFileTTF("./assets/fonts/tahoma.ttf", 12.f);
+        ImGui::GetIO().Fonts->AddFontFromFileTTF(fontPath.c_str(), 12.f);
         (void)ImGui::SFML::UpdateFontTexture();
 
         ImGui::SFML::Update(window, sf::Time::Zero);
@@ -607,7 +594,7 @@ bool Editor::run()
                        sf::Vector2f(PANEL_W, PANEL_SCREEN_H));
 
     sf::Texture sbTex;
-    (void)sbTex.loadFromFile("./assets/textures/Editor/scroll_bar.png");
+    (void)sbTex.loadFromFile(Paths::assetPath("textures/Editor/scroll_bar.png").string());
 
     const sf::IntRect sbRectArrUp   ({0,  0},  {16, 16});
     const sf::IntRect sbRectArrDown ({0,  16}, {16, 16});
@@ -1204,7 +1191,7 @@ bool Editor::run()
             if (!checkUnsavedChanges(map, loadedFile, currentCaveIndex)) goto endFrame;
 
             const char* filterPatterns[] = {"*.cav"};
-            std::string openDefaultPath = (std::filesystem::path(getCavesDir()) / "").string();
+            std::string openDefaultPath = Paths::userCavesDirectory().string();
             const char* openResult = tinyfd_openFileDialog("Open Cave File", openDefaultPath.c_str(), 1, filterPatterns, "Cave Files", 0);
             if (openResult)
             {
@@ -1215,7 +1202,7 @@ bool Editor::run()
                     std::string dir  = (sep != std::string::npos) ? fullPath.substr(0, sep + 1) : "";
                     std::string name = (sep != std::string::npos) ? fullPath.substr(sep + 1)    : fullPath;
 
-                    loadedFile       = Cave::File::loadFromFile(dir, name);
+                    loadedFile       = Cave::File::loadFromFile(std::filesystem::path(dir), name);
                     m_savedFilePath  = fullPath;
                     m_isDirty        = false;
                     currentCaveIndex = 0;
@@ -1518,8 +1505,9 @@ bool Editor::run()
                     // issues with spaces in filenames that std::system() cannot handle.
                     std::string caveArg  = "--cave=" + caveFilename;
                     std::string startArg = "--start=" + std::to_string(currentCaveIndex + 1);
+                    const std::string gamePath = (Paths::executableDirectory() / "DiggingJim").string();
                     std::vector<const char*> argvVec = {
-                        "./DiggingJim",
+                        gamePath.c_str(),
                         "--editor-mode",
                         caveArg.c_str(),
                         startArg.c_str(),
@@ -1530,7 +1518,7 @@ bool Editor::run()
                     pid_t pid = fork();
                     if (pid == 0)
                     {
-                        execvp("./DiggingJim", const_cast<char* const*>(argv));
+                        execv(gamePath.c_str(), const_cast<char* const*>(argv));
                         _exit(1);
                     }
                     else if (pid > 0)

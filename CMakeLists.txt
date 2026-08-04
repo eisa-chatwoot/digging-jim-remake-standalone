@@ -10,11 +10,16 @@ if(WIN32 AND NOT DEFINED CMAKE_GENERATOR_PLATFORM)
     set(CMAKE_GENERATOR_PLATFORM "x64" CACHE INTERNAL "")
 endif()
 
-project(DiggingJim LANGUAGES C CXX)
+project(DiggingJim VERSION 2.0.1 LANGUAGES C CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(FetchContent)
+
+if(APPLE)
+    set(DIGGING_JIM_CODESIGN_IDENTITY "-" CACHE STRING "Code-signing identity for macOS bundles; use - for ad hoc signing")
+    include(cmake/MacOSBundle.cmake)
+endif()
 
 FetchContent_Declare(SFML
     GIT_REPOSITORY https://github.com/SFML/SFML.git
@@ -69,3 +74,7 @@ endif()
 add_subdirectory(lib)
 add_subdirectory(game)
 add_subdirectory(editor)
+
+if(APPLE)
+    digging_jim_add_macos_deployment_target(DiggingJim DiggingJimBuilder)
+endif()

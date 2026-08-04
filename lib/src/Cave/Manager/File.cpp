@@ -29,9 +29,9 @@ static uint32_t readReversedUint32(const char* bytes) {
 }
 
 
-Cave::File Cave::File::loadFromFile(const std::string& directory, const std::string& filename) {
+Cave::File Cave::File::loadFromFile(const std::filesystem::path& directory, const std::string& filename) {
 
-    std::ifstream file(directory + filename, std::ios::binary);
+    std::ifstream file(directory / filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Unable to load cave file: " + filename);
     }

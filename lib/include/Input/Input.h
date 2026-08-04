@@ -158,7 +158,7 @@ namespace Input {
             {sf::Keyboard::Scan::F8,  Input::Action::CameraDown},
             {sf::Keyboard::Scan::F9,  Input::Action::CameraRight},
             {sf::Keyboard::Scan::F10, Input::Action::CameraReset},
-            {sf::Keyboard::Scan::F11, Input::Action::ActivateCheatMode},
+            {sf::Keyboard::Scan::F12, Input::Action::ActivateCheatMode},
 
             // Player controls
             {sf::Keyboard::Scan::Up,      Input::Action::MoveUp},

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cave/Manager/Data.h"
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -29,7 +30,7 @@ namespace Cave {
         /**
          * @brief Load a cave file from the cave file.
          */
-        static Cave::File loadFromFile(const std::string& directory, const std::string& filename);
+        static Cave::File loadFromFile(const std::filesystem::path& directory, const std::string& filename);
 
         /**
          * @brief Save a cave file to the given full path.

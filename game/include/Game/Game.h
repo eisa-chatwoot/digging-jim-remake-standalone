@@ -7,6 +7,7 @@
 #include "Image/Manager.h"
 #include "Sound/Manager.h"
 #include "Utils/Counter.h"
+#include <map>
 #include <string>
 #include <vector>
 
@@ -259,6 +260,18 @@ private:
     /// @brief Reset game-related state values to defaults.
     void resetGame();
 
+    /// @brief Load completed-cave progress from the per-user data directory.
+    void loadGameProgress();
+
+    /// @brief Save completed-cave progress to the per-user data directory.
+    void saveGameProgress() const;
+
+    /// @brief Apply the saved starting cave for the selected cave file.
+    void applySavedProgress();
+
+    /// @brief Record the current cave as completed.
+    void recordCaveCompletion();
+
 public:
     ///@brief The current render window.
     sf::RenderWindow window;
@@ -358,4 +371,10 @@ private:
 
     /// @brief The index of the chosen cave file, in @ref m_caveFilenames;
     int m_caveFileIndex;
+
+    /// @brief Highest completed cave number for each loaded cave file.
+    std::map<std::string, int> m_completedCaves;
+
+    /// @brief Whether the selected cave file needs its saved progress applied.
+    bool m_progressApplyPending = true;
 };

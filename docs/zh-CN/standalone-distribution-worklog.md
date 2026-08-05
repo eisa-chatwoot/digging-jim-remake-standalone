@@ -15,6 +15,7 @@
 - Windows x64 构建会先生成包含游戏、Builder、共享 `assets/`、`LICENSE.md` 以及 MSVC/UCRT 运行库的内部 ZIP 载荷；该 ZIP 只用于嵌入启动器，不作为对外发行物。
 - 可生成两个单文件 Windows EXE：`DiggingJim-2.0.1-windows-x64.exe` 与 `DiggingJimBuilder-2.0.1-windows-x64.exe`。它们分别内嵌完整载荷，并在首次启动时解压到 `%LOCALAPPDATA%\DiggingJim\single-file\`（即 `C:\Users\<USERNAME>\AppData\Local\DiggingJim\single-file\`）的版本化缓存；游戏与 Builder 共用该缓存。
 - 已在 Windows 11 ARM64 虚拟机上以 ARM64 主机工具链交叉构建并验证 x64 目标；从全新解压目录启动游戏和 Builder 均正常。
+- 已加入跨平台关卡进度存档：每个 `.cav` 文件记录最高已通关关卡，主菜单的 **Play** 下次启动时从下一关继续。
 
 ## 完成的工作
 
@@ -131,17 +132,27 @@ build-windows\dist\DiggingJimBuilder-2.0.1-windows-x64.exe
 | 项目 | macOS | Windows | Linux |
 | --- | --- | --- | --- |
 | 应用资源 | `.app/Contents/Resources/assets` | 可执行文件旁的 `assets/` | 可执行文件旁的 `assets/` |
-| 设置与新关卡 | `~/Library/Application Support/Digging Jim/` | `%APPDATA%/Digging Jim/` | `$XDG_DATA_HOME/digging-jim/`，或 `~/.local/share/digging-jim/` |
+| 设置、进度与新关卡 | `~/Library/Application Support/Digging Jim/` | `%APPDATA%/Digging Jim/` | `$XDG_DATA_HOME/digging-jim/`，或 `~/.local/share/digging-jim/` |
 
 相关修改：
 
 - 游戏贴图、音效、音乐、着色器、主菜单 credits、字体、Builder 帮助文档、编辑器控件资源均改为通过 `Paths::assetPath()` 加载。
 - 游戏设置不再写入应用资源目录，改为用户数据目录。
 - 新建/保存的关卡改为写入用户数据目录的 `caves/`。
+- 关卡进度写入用户数据目录的 `progress.txt`；只在成功通关时更新，不保存关卡中途的地图状态。
 - 启动时仍会读取可执行文件旁旧布局中的 `caves/`，兼容已有开发版或旧用户关卡。
 - Builder 的“测试”操作按实际可执行文件位置启动游戏，而不再依赖当前工作目录。
 
-### 5. 退出时误报崩溃的修复
+### 5. 关卡进度存档
+
+- `lib/include/Utils/Paths.h` 与 `lib/src/Utils/Paths.cpp` 新增 `Paths::progressFile()`，沿用现有跨平台用户数据目录。
+- `Game` 启动时读取 `progress.txt`；每次成功通过关卡时记录对应 `.cav` 文件的最高通关编号。
+- 主菜单的 **Play** 自动从该文件的下一关开始；**Start Cave** 仍可手动调整起始关卡。
+- 作弊模式只负责跳转关卡，不会因跳转本身写入存档；在作弊模式下实际通关仍会记录进度。
+- Builder 测试模式不会应用或写入游戏进度，避免编辑器测试污染正式游戏存档。
+- 进度文件采用简单的可读文本格式，损坏或不存在时自动从第一关开始，不会阻止游戏启动。
+
+### 6. 退出时误报崩溃的修复
 
 原因：开发者 HUD 的 FPS 和坐标显示各自使用了全局 `sf::Font`。退出时静态对象析构顺序导致 SFML/OpenGL 上下文提前释放，macOS 会将正常退出报告为异常崩溃。
 
@@ -152,12 +163,12 @@ build-windows\dist\DiggingJimBuilder-2.0.1-windows-x64.exe
 
 验证：重新打包后正常退出没有产生新的 macOS crash report。
 
-### 6. 快捷键调整
+### 7. 快捷键调整
 
 - 作弊模式启动键由 `F11` 调整为 `F12`，避免 MacBook 上 F11 与系统功能键冲突。
 - README 中的说明已同步为 F12。
 
-### 7. 许可证、归属与 Finder 元数据
+### 8. 许可证、归属与 Finder 元数据
 
 - `LICENSE.md` 已转换为 UTF-8，修复原有乱码字符。
 - 许可证中补充：
@@ -167,7 +178,7 @@ build-windows\dist\DiggingJimBuilder-2.0.1-windows-x64.exe
 - 每个 `.app` 都会将 `LICENSE.md` 复制为 `Contents/Resources/LICENSE.md`。
 - Finder 的简短版权字段按当前要求只显示：`Copyright (c) 2026 FlatWhite`。
 
-### 8. README 调整
+### 9. README 调整
 
 README 已改为以独立发行版为中心：
 
@@ -176,7 +187,7 @@ README 已改为以独立发行版为中心：
   `https://github.com/chrismalcolm/digging-jim-remake`
 - 构建章节记录 macOS `macos_bundle` 与 Windows x64 `windows_release` 独立打包。
 - Windows x64 已在 TODO 中标记完成，Linux 独立包仍待实现。
-- 说明了图标优化、资源路径修复、退出崩溃修复、Windows 单文件 EXE 打包和并行资源复制修复。
+- 说明了图标优化、资源路径修复、退出崩溃修复、关卡进度存档、Windows 单文件 EXE 打包和并行资源复制修复。
 
 ## 已完成验证
 
@@ -204,7 +215,8 @@ README 已改为以独立发行版为中心：
 7. 从内部 ZIP 载荷解压到干净目录后，确认 `DiggingJim.exe` 与 `DiggingJimBuilder.exe` 均为 `PE32+ x86-64` GUI 程序；游戏与 Builder 都可启动。
 8. 直接启动两个单文件 EXE，均成功自动解压并显示游戏或 Builder；缓存标记已写入 `%LOCALAPPDATA%\DiggingJim\single-file\`（即 `C:\Users\<USERNAME>\AppData\Local\DiggingJim\single-file\`）。
 9. 自动验证确认两个外层 EXE 均嵌入完整 ZIP 载荷，且仅依赖 Windows 系统 DLL；内部 ZIP 验证器确认资源、许可证和 app-local MSVC/UCRT 运行库都在载荷中，同时确认未包含 `._*` 或 `.DS_Store` macOS 元数据文件。
-10. 已执行 `git diff --check`，当前受 Git 跟踪的改动没有空白错误。
+10. 已通过 macOS `macos_bundle` 与 Windows x64 `windows_release` 编译打包检查；编译器没有报告本次进度存档代码错误。
+11. 已执行 `git diff --check`，当前受 Git 跟踪的改动没有空白错误。
 
 ## 当前限制与后续事项
 
@@ -234,6 +246,7 @@ README 已改为以独立发行版为中心：
 | Windows 单文件 EXE 源码与验证 | `cmake/windows-launcher/`、`cmake/WindowsSingleFileVerify.cmake` |
 | Windows x64 构建入口与最小 Build Tools 配置 | `scripts/windows/build-x64.cmd`、`scripts/windows/BuildTools.x64.vsconfig` |
 | 跨平台资源/数据路径 | `lib/include/Utils/Paths.h`、`lib/src/Utils/Paths.cpp` |
+| 关卡进度存档 | `game/include/Game/Game.h`、`game/src/Game/Game.cpp` |
 | 游戏目标与非 macOS 资源复制 | `game/CMakeLists.txt` |
 | Builder 目标、共享资源排序与内嵌测试程序 | `editor/CMakeLists.txt` |
 | 退出崩溃修复 | `lib/include/HUD/Developer/*.h`、`lib/src/HUD/Developer/*.cpp` |

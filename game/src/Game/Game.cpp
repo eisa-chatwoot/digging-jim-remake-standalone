@@ -28,6 +28,20 @@
 #include <cctype>
 #include <system_error>
 
+namespace {
+
+std::string trimProgressToken(std::string value)
+{
+    const auto first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+
+    const auto last = value.find_last_not_of(" \t\r\n");
+    return value.substr(first, last - first + 1);
+}
+
+} // namespace
+
 // ----------------------------------------------------------------------------------
 // Construction
 // ----------------------------------------------------------------------------------
@@ -45,6 +59,7 @@ Game::Game() :
     m_chosenCaveNumber(INITIAL_CAVE)
 {
     m_settings = loadGameOptionsFromFile(Paths::settingsFile().string());
+    loadGameProgress();
 };
 
 // ----------------------------------------------------------------------------------
@@ -139,6 +154,7 @@ void Game::handleCavePlay(const GameSignal& signal) {
         break;
 
     case GameSignal::CavePass:
+        recordCaveCompletion();
         m_gameState = GameState::CavePass;
         break;
 
@@ -518,6 +534,8 @@ void Game::mainGameLoop() {
         }
 
         setCaveCount(static_cast<int>(caveManager.numCaves(getCaveFileIndex())));
+        if (!m_editorMode && m_progressApplyPending)
+            applySavedProgress();
 
         if (showProps) Cave::editCaveProperties(window, m_caveProperties, getCaveProperties(), map.getDiamondCount(), showtrigger);
 
@@ -753,7 +771,14 @@ int Game::getCaveFileIndex() {
 }
 
 void Game::setCaveFileIndex(int caveFileIndex) {
-    m_caveFileIndex = caveFileIndex;
+    if (m_caveFilenames.empty()) {
+        m_caveFileIndex = std::max(caveFileIndex, 0);
+        return;
+    }
+
+    m_caveFileIndex = std::clamp(caveFileIndex, 0, static_cast<int>(m_caveFilenames.size()) - 1);
+    if (!m_editorMode)
+        m_progressApplyPending = true;
 }
 
 bool Game::markedAsExitedFromCave() {
@@ -796,6 +821,99 @@ void Game::resetCaveState() {
 void Game::resetGame() {
     m_lives = INITIAL_LIVES;
     m_score = 0;
+}
+
+void Game::loadGameProgress()
+{
+    m_completedCaves.clear();
+
+    std::ifstream input(Paths::progressFile());
+    if (!input.is_open())
+        return;
+
+    std::string line;
+    while (std::getline(input, line)) {
+        const std::string trimmed = trimProgressToken(line);
+        if (trimmed.empty() || trimmed.front() == '#' || trimmed.front() == ';')
+            continue;
+
+        const auto separator = trimmed.find('=');
+        if (separator == std::string::npos)
+            continue;
+
+        const std::string caveFile = trimProgressToken(trimmed.substr(0, separator));
+        const std::string valueText = trimProgressToken(trimmed.substr(separator + 1));
+        if (caveFile.empty() || caveFile == "version" || valueText.empty())
+            continue;
+
+        try {
+            size_t consumed = 0;
+            const int completedCaves = std::stoi(valueText, &consumed);
+            if (consumed != valueText.size() || completedCaves < 0)
+                continue;
+            m_completedCaves[caveFile] = completedCaves;
+        }
+        catch (const std::exception&) {
+            // Ignore malformed progress entries and keep the remaining data.
+        }
+    }
+}
+
+void Game::saveGameProgress() const
+{
+    try {
+        const auto path = Paths::progressFile();
+        const auto parentDirectory = path.parent_path();
+        if (!parentDirectory.empty()) {
+            std::error_code error;
+            std::filesystem::create_directories(parentDirectory, error);
+            if (error)
+                return;
+        }
+
+        std::ofstream output(path, std::ios::out | std::ios::trunc);
+        if (!output.is_open())
+            return;
+
+        output << "# Digging Jim completed-cave progress\n";
+        output << "version = 1\n";
+        for (const auto& [caveFile, completedCaves] : m_completedCaves) {
+            if (!caveFile.empty() && completedCaves > 0)
+                output << caveFile << " = " << completedCaves << '\n';
+        }
+    }
+    catch (const std::exception&) {
+        // Progress saving is best-effort and must not interrupt gameplay.
+    }
+}
+
+void Game::applySavedProgress()
+{
+    if (m_editorMode || m_caveFilenames.empty() || m_caveFileIndex < 0 ||
+        m_caveFileIndex >= static_cast<int>(m_caveFilenames.size()) || m_caveCount <= 0)
+        return;
+
+    int completedCaves = 0;
+    const auto progress = m_completedCaves.find(m_caveFilenames[m_caveFileIndex]);
+    if (progress != m_completedCaves.end())
+        completedCaves = std::max(progress->second, 0);
+
+    m_caveNumber = std::clamp(completedCaves + 1, 1, m_caveCount);
+    m_progressApplyPending = false;
+}
+
+void Game::recordCaveCompletion()
+{
+    if (m_editorMode || m_caveFilenames.empty() || m_caveFileIndex < 0 ||
+        m_caveFileIndex >= static_cast<int>(m_caveFilenames.size()) || m_caveNumber <= 0)
+        return;
+
+    const std::string& caveFile = m_caveFilenames[m_caveFileIndex];
+    int& completedCaves = m_completedCaves[caveFile];
+    if (m_caveNumber > completedCaves) {
+        completedCaves = m_caveNumber;
+        saveGameProgress();
+    }
 }
 
 void Game::checkExtraLife() {

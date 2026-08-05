@@ -30,11 +30,23 @@ For the original non-standalone releases, platform-specific runtime dependencies
 
 ## ✨ Improvements in This Fork
 
+**Features**
+
+- Added cross-platform completed-cave progress saves; `Play` resumes at the next unfinished cave for each `.cav` file.
+
+**Packaging**
+
+- Added verified Windows x64 self-contained single-file EXEs with bundled MSVC/UCRT runtime files.
+
+**Icons**
+
 - Unified high-resolution `app_icon.png` sources for Digging Jim and Digging Jim Builder, used to produce macOS `.icns`, Windows multi-size `.ico`, and runtime PNG icons.
 - Preserved the original icon assets under `assets/icons_bak/` for reference while excluding them from standalone packages.
+
+**Fixes**
+
 - Fixed packaged-app resource discovery so assets load reliably outside the source tree.
 - Fixed shutdown resource lifetimes to prevent the packaged app from reporting a crash after a normal exit.
-- Added verified Windows x64 self-contained single-file EXEs with bundled MSVC/UCRT runtime files.
 - Fixed a parallel-build resource-staging race between Digging Jim and Digging Jim Builder.
 
 ---
@@ -108,6 +120,7 @@ Each cave presents a grid of dirt, rocks, enemies, and glittering diamonds. To e
 - **Controller & joystick support** added alongside original keyboard controls
 - **Cave Editor** — build your own cave files with a full GUI editor (undo/redo; cave properties; test-in-game; developer mode for extended tools)
 - **Original `.cav` file format** — backwards-compatible with cave files from the original 1999 game
+- **Progress saves** — completed-cave progress is saved per cave file and `Play` resumes at the next unfinished cave
 - **Per-cave colour theming** — hue, saturation, and luminance controls per cave
 - **Animated tiles** — amoeba, magic walls, plasma, and more all animate in-game
 - **Sound effects** — original sound design recreated for every entity interaction
@@ -127,6 +140,26 @@ Press `F12` to activate, then:
 | `F3` | Go to previous cave (new) |
 
 > Cave navigation in the Main Menu also steps by 1 (instead of 5) while cheat mode is active.
+
+---
+
+### Progress saves
+
+After a cave is completed, the game saves the highest completed cave for that
+`.cav` file. The next launch starts **Play** at the next unfinished cave;
+`Start Cave` can still be used to choose another cave manually. Progress is
+stored in `progress.txt` under the per-user data directory:
+
+| Platform | Location |
+| :--- | :--- |
+| macOS | `~/Library/Application Support/Digging Jim/progress.txt` |
+| Windows | `%APPDATA%\Digging Jim\progress.txt` |
+| Linux | `$XDG_DATA_HOME/digging-jim/progress.txt`, or `~/.local/share/digging-jim/progress.txt` |
+
+Only completed-cave progress is saved; quitting or closing the game during a
+cave restarts that cave on the next launch. Selecting a cave with cheat mode
+does not save it by itself, but completing that cave still records progress;
+Builder test runs do not apply or write game progress.
 
 ---
 
@@ -258,6 +291,6 @@ This project builds on [**chrismalcolm/digging-jim-remake**](https://github.com/
 
 **Standalone Distribution Fork (2026)**
 
-- Packaging, application icons, and bug fixes: **FlatWhite**
+- Packaging, application icons, feature improvements, and bug fixes: **FlatWhite**
 
 > This project is a non-commercial fan tribute. It is not affiliated with or endorsed by Persei Entertainment. Please support the original release where possible.

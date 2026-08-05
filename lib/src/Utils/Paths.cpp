@@ -116,6 +116,11 @@ std::filesystem::path Paths::settingsFile()
     return userDataDirectory() / "settings.txt";
 }
 
+std::filesystem::path Paths::progressFile()
+{
+    return userDataDirectory() / "progress.txt";
+}
+
 std::filesystem::path Paths::userCavesDirectory()
 {
     return userDataDirectory() / "caves";

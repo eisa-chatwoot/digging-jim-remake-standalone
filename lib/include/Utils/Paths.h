@@ -27,6 +27,9 @@ namespace Paths {
 /// Return the per-user settings file location.
 [[nodiscard]] std::filesystem::path settingsFile();
 
+/// Return the per-user completed-cave progress file location.
+[[nodiscard]] std::filesystem::path progressFile();
+
 /// Return the directory that contains user-created cave files.
 [[nodiscard]] std::filesystem::path userCavesDirectory();
 

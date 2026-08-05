@@ -95,7 +95,8 @@ void HUD::MainMenu::MainMenu::update() {
     }
 
     m_creditsPositionX -= 2;
-    if (m_creditsPositionX < -6500) m_creditsPositionX = 800;
+    const int creditsWidth = static_cast<int>(m_creditsText.size()) * 16;
+    if (m_creditsPositionX < -creditsWidth) m_creditsPositionX = 800;
 
     m_caveNumberRenderer.updateNumbers({
         {{ 480, 64 }, m_game->getCaveNumber(), 3, 0},

@@ -80,8 +80,8 @@ git merge upstream/main
 Replace `YYYY-MM-DD` with the actual date, for example
 `sync/upstream-2026-08-05`.
 
-Then resolve any conflicts, rebuild the project, and run the relevant checks.
-For this fork, the macOS standalone package check is:
+Then resolve any conflicts, rebuild the project, and run the relevant package
+checks. On macOS, build and verify the standalone apps with:
 
 ```bash
 cmake -S . -B build-macos \
@@ -90,6 +90,13 @@ cmake -S . -B build-macos \
 cmake --build build-macos --target macos_bundle -j 4
 codesign --verify --deep --strict build-macos/bin/DiggingJim.app
 codesign --verify --deep --strict build-macos/bin/DiggingJimBuilder.app
+```
+
+On Windows, build and verify the x64 standalone single-file EXE artifacts with
+(the build creates an internal ZIP payload for the launchers):
+
+```bat
+scripts\windows\build-x64.cmd
 ```
 
 Publish the sync branch and open a pull request into this repository's `main`:
@@ -137,7 +144,8 @@ git merge --abort
 - Keep `cmake/`, `assets/icons/`, and the path/packaging changes when resolving
   conflicts; they implement this fork's standalone distribution behavior.
 - Review `git status` before using `git add -A`.
-- Keep build output out of commits; `.gitignore` already covers `build-macos/`.
-  Documentation under `docs/` is intentionally versioned.
+- Keep build output out of commits; `.gitignore` already covers `build-macos/`
+  and `build-windows/`. Documentation under `docs/` is intentionally
+  versioned.
 - Use a pull request for upstream synchronization, especially when upstream
   changes touch CMake, runtime paths, assets, or licensing.

@@ -6,10 +6,10 @@ function(digging_jim_configure_macos_bundle target display_name bundle_identifie
     endif()
 
     set(_default_icon_source "${CMAKE_SOURCE_DIR}/assets/icons/${icon_directory}/large_png.png")
-    set(_high_resolution_icon_source "${CMAKE_SOURCE_DIR}/assets/icons/${icon_directory}/macos_icon.png")
+    set(_app_icon_source "${CMAKE_SOURCE_DIR}/assets/icons/${icon_directory}/app_icon.png")
 
-    if(EXISTS "${_high_resolution_icon_source}")
-        set(_icon_source "${_high_resolution_icon_source}")
+    if(EXISTS "${_app_icon_source}")
+        set(_icon_source "${_app_icon_source}")
     else()
         set(_icon_source "${_default_icon_source}")
     endif()
@@ -45,9 +45,15 @@ function(digging_jim_configure_macos_bundle target display_name bundle_identifie
 
     add_custom_target("${target}_macos_bundle_resources"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources"
+        # copy_directory does not remove files deleted from the source tree.
+        # Clear the staged assets first so renamed icon files cannot linger in
+        # a rebuilt application bundle.
+        COMMAND "${CMAKE_COMMAND}" -E rm -r -f "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/assets"
         COMMAND "${CMAKE_COMMAND}" -E copy_directory
                 "${CMAKE_SOURCE_DIR}/assets"
                 "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/assets"
+        # Keep original icon backups in the source tree without shipping them.
+        COMMAND "${CMAKE_COMMAND}" -E rm -r -f "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/assets/icons_bak"
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
                 "${_icon_file}"
                 "$<TARGET_BUNDLE_CONTENT_DIR:${target}>/Resources/${_icon_name}"

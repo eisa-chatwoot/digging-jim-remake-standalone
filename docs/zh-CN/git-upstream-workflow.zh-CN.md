@@ -75,7 +75,7 @@ git merge upstream/main
 
 将 `YYYY-MM-DD` 换成实际日期，例如 `sync/upstream-2026-08-05`。
 
-接着解决冲突、重新构建并验证。此 Fork 的 macOS 独立包验证命令是：
+接着解决冲突、重新构建并执行受影响平台的独立发行验证。macOS 独立包验证命令是：
 
 ```bash
 cmake -S . -B build-macos \
@@ -84,6 +84,13 @@ cmake -S . -B build-macos \
 cmake --build build-macos --target macos_bundle -j 4
 codesign --verify --deep --strict build-macos/bin/DiggingJim.app
 codesign --verify --deep --strict build-macos/bin/DiggingJimBuilder.app
+```
+
+在 Windows 上，使用以下命令构建并验证 x64 独立单文件 EXE 发行物（构建过程会
+生成供启动器嵌入的内部 ZIP 载荷）：
+
+```bat
+scripts\windows\build-x64.cmd
 ```
 
 完成后推送同步分支，并在 GitHub 向自己的 `main` 创建 Pull Request：
@@ -129,5 +136,5 @@ git merge --abort
 - 不要对 `main` 使用 force push。
 - 解决冲突时，保留 `cmake/`、`assets/icons/` 与资源路径/打包相关改动；它们实现了本 Fork 的独立发行能力。
 - 执行 `git add -A` 前先查看 `git status`。
-- 不提交构建产物；`.gitignore` 已忽略 `build-macos/`。`docs/` 下的项目文档会随仓库提交。
+- 不提交构建产物；`.gitignore` 已忽略 `build-macos/` 与 `build-windows/`。`docs/` 下的项目文档会随仓库提交。
 - 上游更新涉及 CMake、运行时路径、资源或许可证时，务必通过 Pull Request 审查后再合并。

@@ -344,7 +344,9 @@ void Game::mainGameLoop() {
     {
 #if !defined(__APPLE__)
         sf::Image largeIcon;
-        if (largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJim/large_png.png").string()))
+        if (!largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJim/app_icon.png").string()))
+            (void)largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJim/large_png.png").string());
+        if (largeIcon.getSize().x)
             window.setIcon(largeIcon);
 #endif
 #ifdef _WIN32

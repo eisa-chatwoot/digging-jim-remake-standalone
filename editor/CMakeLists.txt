@@ -20,6 +20,11 @@ target_include_directories(DiggingJimBuilder PRIVATE
 
 target_link_libraries(DiggingJimBuilder PRIVATE DiggingJimLib)
 
+# The Builder's Test action starts DiggingJim from the same runtime directory.
+# Keeping this dependency on every platform also serializes the shared assets
+# staging step used by non-bundle builds.
+add_dependencies(DiggingJimBuilder DiggingJim)
+
 if(APPLE)
     digging_jim_configure_macos_bundle(
         DiggingJimBuilder
@@ -27,7 +32,6 @@ if(APPLE)
         "com.retrospade.diggingjim.builder"
         "DiggingJimBuilder"
     )
-    add_dependencies(DiggingJimBuilder DiggingJim)
     add_custom_command(
         TARGET DiggingJimBuilder POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -42,16 +46,5 @@ if(WIN32)
     target_link_options(DiggingJimBuilder PRIVATE
         $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup>
         $<$<AND:$<CONFIG:Release>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-mwindows>
-    )
-endif()
-
-if(NOT APPLE)
-    add_custom_command(
-        TARGET DiggingJimBuilder POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_SOURCE_DIR}/assets
-                $<TARGET_FILE_DIR:DiggingJimBuilder>/assets
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-                $<TARGET_FILE_DIR:DiggingJimBuilder>/caves
     )
 endif()

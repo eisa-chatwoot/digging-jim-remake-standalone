@@ -434,7 +434,8 @@ bool Editor::run()
 #if !defined(__APPLE__)
     sf::Image smallIcon, largeIcon;
     (void)smallIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/small_png.png").string());
-    (void)largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/large_png.png").string());
+    if (!largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/app_icon.png").string()))
+        (void)largeIcon.loadFromFile(Paths::assetPath("icons/DiggingJimBuilder/large_png.png").string());
 #endif
 
     auto applyIcons = [&]()

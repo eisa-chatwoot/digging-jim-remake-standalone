@@ -23,6 +23,8 @@ endif()
 
 foreach(_bundle IN ITEMS "${GAME_APP}" "${BUILDER_APP}")
     file(COPY "${ASSETS_DIR}" DESTINATION "${_bundle}/Contents/Resources")
+    # The backup icon set is source-only and must not be shipped in bundles.
+    file(REMOVE_RECURSE "${_bundle}/Contents/Resources/assets/icons_bak")
 endforeach()
 
 if(DEFINED SEARCH_DIRS AND NOT "${SEARCH_DIRS}" STREQUAL "")

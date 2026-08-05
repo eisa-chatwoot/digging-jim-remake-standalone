@@ -1,0 +1,385 @@
+#include <windows.h>
+
+#include <filesystem>
+#include <fstream>
+#include <string>
+#include <system_error>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+namespace {
+
+constexpr int kPayloadResourceId = 101;
+constexpr wchar_t kPackageName[] = L"@PACKAGE_NAME@";
+constexpr wchar_t kLaunchExecutable[] = L"@LAUNCHER_EXECUTABLE@";
+constexpr wchar_t kProductName[] = L"@LAUNCHER_PRODUCT_NAME@";
+constexpr char kPayloadSha256[] = "@PAYLOAD_SHA256@";
+constexpr char kPayloadMarkerName[] = ".flatwhite-payload.sha256";
+constexpr wchar_t kMutexName[] = L"Local\\FlatWhite.DiggingJim.SingleFile.Payload";
+
+std::wstring formatSystemError(DWORD error)
+{
+    LPWSTR message = nullptr;
+    const DWORD length = FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        error,
+        0,
+        reinterpret_cast<LPWSTR>(&message),
+        0,
+        nullptr);
+
+    std::wstring result = length == 0 ? L"Windows error " + std::to_wstring(error) : message;
+    if (message != nullptr) {
+        LocalFree(message);
+    }
+    while (!result.empty() && (result.back() == L'\r' || result.back() == L'\n')) {
+        result.pop_back();
+    }
+    return result;
+}
+
+std::wstring formatFilesystemError(const std::error_code& error)
+{
+    const std::string message = error.message();
+    return std::wstring(message.begin(), message.end());
+}
+
+std::wstring quoteCommandArgument(const std::wstring& argument)
+{
+    if (argument.empty()) {
+        return L"\"\"";
+    }
+
+    if (argument.find_first_of(L" \t\"") == std::wstring::npos) {
+        return argument;
+    }
+
+    std::wstring quoted = L"\"";
+    size_t backslashCount = 0;
+    for (const wchar_t character : argument) {
+        if (character == L'\\') {
+            ++backslashCount;
+            continue;
+        }
+        if (character == L'\"') {
+            quoted.append(backslashCount * 2 + 1, L'\\');
+            quoted.push_back(L'\"');
+            backslashCount = 0;
+            continue;
+        }
+        quoted.append(backslashCount, L'\\');
+        backslashCount = 0;
+        quoted.push_back(character);
+    }
+    quoted.append(backslashCount * 2, L'\\');
+    quoted.push_back(L'\"');
+    return quoted;
+}
+
+std::wstring escapePowerShellLiteral(const std::wstring& value)
+{
+    std::wstring escaped;
+    escaped.reserve(value.size());
+    for (const wchar_t character : value) {
+        escaped.push_back(character);
+        if (character == L'\'') {
+            escaped.push_back(L'\'');
+        }
+    }
+    return escaped;
+}
+
+bool readEmbeddedPayload(const void*& data, DWORD& size, std::wstring& error)
+{
+    const HRSRC resource = FindResourceW(
+        nullptr, MAKEINTRESOURCEW(kPayloadResourceId), RT_RCDATA);
+    if (resource == nullptr) {
+        error = L"The embedded package could not be found: " + formatSystemError(GetLastError());
+        return false;
+    }
+
+    const HGLOBAL loadedResource = LoadResource(nullptr, resource);
+    if (loadedResource == nullptr) {
+        error = L"The embedded package could not be loaded: " + formatSystemError(GetLastError());
+        return false;
+    }
+
+    data = LockResource(loadedResource);
+    size = SizeofResource(nullptr, resource);
+    if (data == nullptr || size == 0) {
+        error = L"The embedded package is empty.";
+        return false;
+    }
+    return true;
+}
+
+bool writeEmbeddedPayload(const fs::path& destination, std::wstring& error)
+{
+    const void* data = nullptr;
+    DWORD size = 0;
+    if (!readEmbeddedPayload(data, size, error)) {
+        return false;
+    }
+
+    const HANDLE file = CreateFileW(
+        destination.c_str(),
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        error = L"Could not create the temporary package file: " + formatSystemError(GetLastError());
+        return false;
+    }
+
+    const auto* bytes = static_cast<const unsigned char*>(data);
+    DWORD remaining = size;
+    bool success = true;
+    while (remaining > 0) {
+        DWORD written = 0;
+        if (!WriteFile(file, bytes + (size - remaining), remaining, &written, nullptr) || written == 0) {
+            error = L"Could not write the embedded package: " + formatSystemError(GetLastError());
+            success = false;
+            break;
+        }
+        remaining -= written;
+    }
+
+    if (success && !FlushFileBuffers(file)) {
+        error = L"Could not finalize the embedded package: " + formatSystemError(GetLastError());
+        success = false;
+    }
+    CloseHandle(file);
+
+    if (!success) {
+        std::error_code ignored;
+        fs::remove(destination, ignored);
+    }
+    return success;
+}
+
+bool markerMatches(const fs::path& packageRoot)
+{
+    std::error_code error;
+    if (!fs::is_regular_file(packageRoot / kLaunchExecutable, error)
+        || !fs::is_regular_file(packageRoot / L"DiggingJim.exe", error)
+        || !fs::is_regular_file(packageRoot / L"DiggingJimBuilder.exe", error)
+        || !fs::is_directory(packageRoot / L"assets", error)) {
+        return false;
+    }
+
+    std::ifstream marker(packageRoot / kPayloadMarkerName, std::ios::binary);
+    std::string cachedHash;
+    std::getline(marker, cachedHash);
+    return static_cast<bool>(marker) && cachedHash == kPayloadSha256;
+}
+
+bool writeMarker(const fs::path& packageRoot, std::wstring& error)
+{
+    std::ofstream marker(packageRoot / kPayloadMarkerName, std::ios::binary | std::ios::trunc);
+    if (!marker) {
+        error = L"Could not record the extracted package version.";
+        return false;
+    }
+    marker << kPayloadSha256 << '\n';
+    if (!marker) {
+        error = L"Could not finalize the extracted package version.";
+        return false;
+    }
+    return true;
+}
+
+bool expandArchive(const fs::path& archive, const fs::path& destination, std::wstring& error)
+{
+    wchar_t systemDirectory[MAX_PATH]{};
+    const UINT systemDirectoryLength = GetSystemDirectoryW(systemDirectory, MAX_PATH);
+    if (systemDirectoryLength == 0 || systemDirectoryLength >= MAX_PATH) {
+        error = L"Could not locate Windows PowerShell: " + formatSystemError(GetLastError());
+        return false;
+    }
+
+    const fs::path powerShell = fs::path(systemDirectory) / L"WindowsPowerShell" / L"v1.0" / L"powershell.exe";
+    const std::wstring script =
+        L"Expand-Archive -LiteralPath '" + escapePowerShellLiteral(archive.wstring())
+        + L"' -DestinationPath '" + escapePowerShellLiteral(destination.wstring()) + L"' -Force";
+    std::wstring commandLine = quoteCommandArgument(powerShell.wstring())
+        + L" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "
+        + quoteCommandArgument(script);
+    std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
+    mutableCommand.push_back(L'\0');
+
+    STARTUPINFOW startupInfo{};
+    startupInfo.cb = sizeof(startupInfo);
+    PROCESS_INFORMATION processInfo{};
+    if (!CreateProcessW(
+            powerShell.c_str(),
+            mutableCommand.data(),
+            nullptr,
+            nullptr,
+            FALSE,
+            CREATE_NO_WINDOW,
+            nullptr,
+            destination.c_str(),
+            &startupInfo,
+            &processInfo)) {
+        error = L"Could not start Windows PowerShell to extract the package: "
+            + formatSystemError(GetLastError());
+        return false;
+    }
+
+    WaitForSingleObject(processInfo.hProcess, INFINITE);
+    DWORD exitCode = 1;
+    const bool gotExitCode = GetExitCodeProcess(processInfo.hProcess, &exitCode) != FALSE;
+    CloseHandle(processInfo.hThread);
+    CloseHandle(processInfo.hProcess);
+
+    if (!gotExitCode || exitCode != 0) {
+        error = L"Windows PowerShell could not extract the embedded package (exit code "
+            + std::to_wstring(exitCode) + L").";
+        return false;
+    }
+    return true;
+}
+
+fs::path localApplicationData()
+{
+    DWORD required = GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
+    if (required > 0) {
+        std::vector<wchar_t> value(required);
+        if (GetEnvironmentVariableW(L"LOCALAPPDATA", value.data(), required) > 0) {
+            return fs::path(value.data());
+        }
+    }
+
+    wchar_t temporaryPath[MAX_PATH]{};
+    const DWORD temporaryPathLength = GetTempPathW(MAX_PATH, temporaryPath);
+    if (temporaryPathLength > 0 && temporaryPathLength < MAX_PATH) {
+        return fs::path(temporaryPath);
+    }
+    return fs::current_path();
+}
+
+bool ensureExtractedPackage(const fs::path& packageRoot, std::wstring& error)
+{
+    if (markerMatches(packageRoot)) {
+        return true;
+    }
+
+    const fs::path cacheDirectory = packageRoot.parent_path();
+    std::error_code filesystemError;
+    fs::create_directories(cacheDirectory, filesystemError);
+    if (filesystemError) {
+        error = L"Could not create the local application cache: " + formatFilesystemError(filesystemError);
+        return false;
+    }
+
+    const fs::path temporaryArchive = cacheDirectory / (L"." + std::wstring(kPackageName) + L".payload.zip");
+    fs::remove(temporaryArchive, filesystemError);
+    filesystemError.clear();
+    if (!writeEmbeddedPayload(temporaryArchive, error)) {
+        return false;
+    }
+
+    fs::remove_all(packageRoot, filesystemError);
+    if (filesystemError) {
+        error = L"Could not replace the local application cache. Close any running Digging Jim apps and try again: "
+            + formatFilesystemError(filesystemError);
+        return false;
+    }
+
+    if (!expandArchive(temporaryArchive, cacheDirectory, error)) {
+        return false;
+    }
+    fs::remove(temporaryArchive, filesystemError);
+
+    if (!markerMatches(packageRoot) && !writeMarker(packageRoot, error)) {
+        return false;
+    }
+    if (!markerMatches(packageRoot)) {
+        error = L"The extracted package is incomplete.";
+        return false;
+    }
+    return true;
+}
+
+bool launchApplication(const fs::path& packageRoot, std::wstring& error)
+{
+    const fs::path executable = packageRoot / kLaunchExecutable;
+    if (!fs::is_regular_file(executable)) {
+        error = L"The extracted application could not be found: " + executable.wstring();
+        return false;
+    }
+
+    std::wstring commandLine = quoteCommandArgument(executable.wstring());
+    std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
+    mutableCommand.push_back(L'\0');
+
+    STARTUPINFOW startupInfo{};
+    startupInfo.cb = sizeof(startupInfo);
+    PROCESS_INFORMATION processInfo{};
+    if (!CreateProcessW(
+            executable.c_str(),
+            mutableCommand.data(),
+            nullptr,
+            nullptr,
+            FALSE,
+            0,
+            nullptr,
+            packageRoot.c_str(),
+            &startupInfo,
+            &processInfo)) {
+        error = L"Could not start the extracted application: " + formatSystemError(GetLastError());
+        return false;
+    }
+
+    CloseHandle(processInfo.hThread);
+    CloseHandle(processInfo.hProcess);
+    return true;
+}
+
+void showError(const std::wstring& error)
+{
+    MessageBoxW(nullptr, error.c_str(), kProductName, MB_OK | MB_ICONERROR);
+}
+
+} // namespace
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+{
+    const fs::path packageRoot = localApplicationData()
+        / L"DiggingJim"
+        / L"single-file"
+        / kPackageName;
+
+    const HANDLE mutex = CreateMutexW(nullptr, FALSE, kMutexName);
+    if (mutex == nullptr) {
+        showError(L"Could not prepare the local application cache: " + formatSystemError(GetLastError()));
+        return 1;
+    }
+
+    const DWORD waitResult = WaitForSingleObject(mutex, 10 * 60 * 1000);
+    if (waitResult != WAIT_OBJECT_0 && waitResult != WAIT_ABANDONED) {
+        CloseHandle(mutex);
+        showError(L"Timed out while another Digging Jim launcher was preparing the package.");
+        return 1;
+    }
+
+    std::wstring error;
+    const bool extracted = ensureExtractedPackage(packageRoot, error);
+    ReleaseMutex(mutex);
+    CloseHandle(mutex);
+    if (!extracted) {
+        showError(error);
+        return 1;
+    }
+
+    if (!launchApplication(packageRoot, error)) {
+        showError(error);
+        return 1;
+    }
+    return 0;
+}

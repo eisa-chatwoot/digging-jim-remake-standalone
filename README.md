@@ -9,13 +9,13 @@
   <a href="https://github.com/chrismalcolm/digging-jim-remake"><img src="https://img.shields.io/badge/Based%20on-chrismalcolm%2Fdigging--jim--remake-24292F?style=for-the-badge&logo=github&logoColor=white" alt="Based on chrismalcolm/digging-jim-remake"></a>
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus" alt="C++17">
   <img src="https://img.shields.io/badge/SFML-3.0-red?style=for-the-badge" alt="SFML 3.0">
-  <img src="https://img.shields.io/badge/Standalone-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Standalone macOS distribution">
+  <img src="https://img.shields.io/badge/Standalone-Cross--platform-6E56CF?style=for-the-badge" alt="Cross-platform standalone distribution">
 </p>
 
 <p align="center">
   An unofficial, non-commercial C++ fan remake of <strong>Digging Jim</strong> — a Boulder Dash‑style game originally developed by <em>Persei Entertainment</em> in 1999.
   <br>
-  This fork focuses on self-contained, independently runnable distribution packages. Platform support will expand over time.
+  This fork focuses on self-contained, independently runnable distribution packages for supported platforms.
 </p>
 
 ---
@@ -30,15 +30,18 @@ For the original non-standalone releases, platform-specific runtime dependencies
 
 ## ✨ Improvements in This Fork
 
-- Refined high-resolution application icons for both Digging Jim and Digging Jim Builder.
+- Unified high-resolution `app_icon.png` sources for Digging Jim and Digging Jim Builder, used to produce macOS `.icns`, Windows multi-size `.ico`, and runtime PNG icons.
+- Preserved the original icon assets under `assets/icons_bak/` for reference while excluding them from standalone packages.
 - Fixed packaged-app resource discovery so assets load reliably outside the source tree.
 - Fixed shutdown resource lifetimes to prevent the packaged app from reporting a crash after a normal exit.
+- Added verified Windows x64 self-contained single-file EXEs with bundled MSVC/UCRT runtime files.
+- Fixed a parallel-build resource-staging race between Digging Jim and Digging Jim Builder.
 
 ---
 
 ## 🚧 TODO
 
-- [ ] Create a standalone Windows distribution package.
+- [x] Create a standalone Windows x64 distribution package.
 - [ ] Create a standalone Linux distribution package.
 
 ---
@@ -101,7 +104,7 @@ Each cave presents a grid of dirt, rocks, enemies, and glittering diamonds. To e
 
 - **Faithful recreation** of all 100 original Persei Entertainment caves
 - **Cross-platform source** — Windows, Linux (x64 & ARM64), and macOS
-- **Standalone distribution** — this fork focuses on independently runnable packages, with additional platform packages planned
+- **Standalone distribution** — self-contained macOS app bundles plus Windows x64 single-file EXE packages; Linux packaging is planned
 - **Controller & joystick support** added alongside original keyboard controls
 - **Cave Editor** — build your own cave files with a full GUI editor (undo/redo; cave properties; test-in-game; developer mode for extended tools)
 - **Original `.cav` file format** — backwards-compatible with cave files from the original 1999 game
@@ -168,7 +171,7 @@ This repository documents only builds that create independently runnable distrib
 
 ### macOS
 
-The current standalone distribution target is macOS. The build machine needs macOS with Xcode Command Line Tools, CMake 3.28+, and Homebrew wxWidgets:
+For macOS standalone app bundles, the build machine needs macOS with Xcode Command Line Tools, CMake 3.28+, and Homebrew wxWidgets:
 
 ```bash
 brew install wxwidgets
@@ -197,9 +200,42 @@ cmake -S . -B build-macos -DBUILD_SHARED_LIBS=OFF \
 cmake --build build-macos --target macos_bundle -j 4
 ```
 
-### Windows and Linux
+### Windows (x64)
 
-Standalone package targets for Windows and Linux are planned but are not available yet.
+Build on Windows with Git, CMake 3.28+, and Visual Studio 2022 Build Tools. In
+the Visual Studio Installer, import
+[`scripts/windows/BuildTools.x64.vsconfig`](./scripts/windows/BuildTools.x64.vsconfig)
+to install the minimal MSVC x64/x86 tools, ARM64 host tools, and Windows SDK
+needed to cross-build x64 on an ARM Windows machine.
+
+Run the build script from a Command Prompt:
+
+```bat
+scripts\windows\build-x64.cmd
+```
+
+The script bootstraps vcpkg in `%USERPROFILE%\vcpkg` when needed, builds the
+static third-party dependencies, and creates the two public distribution artifacts:
+
+```text
+build-windows\dist\DiggingJim-2.0.1-windows-x64.exe
+build-windows\dist\DiggingJimBuilder-2.0.1-windows-x64.exe
+```
+
+Each EXE embeds the complete package assembled by CMake. On first launch it
+extracts a versioned cache under
+`%LOCALAPPDATA%\DiggingJim\single-file\` (for example,
+`C:\Users\<USERNAME>\AppData\Local\DiggingJim\single-file\`); later launches
+reuse it. The game and Builder share the cache, and recipients do not need
+vcpkg, wxWidgets, or a separate Microsoft Visual C++ runtime.
+
+The Windows EXEs are not code-signed yet, so SmartScreen may show a warning on
+other machines. Code signing should be added before a broad public release.
+
+### Linux
+
+A standalone Linux package target is planned. For an ordinary source build or
+a non-standalone Linux release, use the [upstream project](https://github.com/chrismalcolm/digging-jim-remake).
 
 ---
 

@@ -4,76 +4,130 @@ on:
   push:
     tags:
       - "v*"
+      - "standalone-v*"
 
 permissions:
   contents: write
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
-  build:
-    name: Build ${{ matrix.platform.name }}
-    runs-on: ${{ matrix.platform.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-        - { name: Windows, os: windows-2022 }
-        - { name: Linux,   os: ubuntu-24.04 }
-        - { name: macOS,   os: macos-latest }
+  macos:
+    name: Build macOS standalone apps
+    runs-on: macos-14
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Install Linux Dependencies
-      if: runner.os == 'Linux'
-      run: |
-        sudo add-apt-repository universe
-        sudo apt-get update
-        sudo apt-get install -y \
-          libxrandr-dev libxcursor-dev libxi-dev libudev-dev \
-          libgl1-mesa-dev libegl1-mesa-dev libopenal-dev \
-          libflac-dev libvorbis-dev libogg-dev
-        sudo apt-get install -y libfreetype-dev libwxgtk3.2-dev
+      - name: Install wxWidgets
+        run: brew install wxwidgets
 
-    - name: Install macOS Dependencies
-      if: runner.os == 'macOS'
-      run: brew install wxwidgets
+      - name: Configure
+        run: |
+          wxwidgets_prefix="$(brew --prefix wxwidgets)"
+          cmake -S . -B build-macos \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_PREFIX_PATH="${wxwidgets_prefix}"
 
-    - name: Configure
-      run: |
-        EXTRA=""
-        if [ "$RUNNER_OS" = "Windows" ]; then
-          EXTRA="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-static-md"
-        fi
-        cmake -B build -DBUILD_SHARED_LIBS=FALSE $EXTRA
+      - name: Build and package standalone apps
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Build
-      run: cmake --build build --config Release --parallel
+          cmake --build build-macos --target macos_bundle --config Release --parallel
 
-    - name: Package Game Bundle
-      run: |
-        if [ "$RUNNER_OS" = "Windows" ]; then
-          cp -r assets build/bin/Release/
-          mkdir -p build/bin/Release/caves
-          touch build/bin/Release/caves/.gitkeep
-          cd build/bin/Release
-          7z a ../../../DiggingJim-${{ matrix.platform.name }}.zip .
-        else
-          cp -r assets build/bin/
-          mkdir -p build/bin/caves
-          touch build/bin/caves/.gitkeep
-          cd build/bin
-          zip -r ../../DiggingJim-${{ matrix.platform.name }}.zip .
-        fi
+          codesign --verify --deep --strict build-macos/bin/DiggingJim.app
+          codesign --verify --deep --strict build-macos/bin/DiggingJimBuilder.app
 
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2
-      with:
-        files: DiggingJim-${{ matrix.platform.name }}.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          version="$(sed -nE 's/^project\(DiggingJim VERSION ([^ )]+).*/\1/p' CMakeLists.txt)"
+          if [[ -z "${version}" ]]; then
+            echo "Could not determine the project version from CMakeLists.txt" >&2
+            exit 1
+          fi
+
+          arch="$(uname -m)"
+          mkdir -p build-macos/dist
+          ditto -c -k --sequesterRsrc --keepParent \
+            build-macos/bin/DiggingJim.app \
+            "build-macos/dist/DiggingJim-${version}-macos-${arch}.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            build-macos/bin/DiggingJimBuilder.app \
+            "build-macos/dist/DiggingJimBuilder-${version}-macos-${arch}.zip"
+
+      - name: Upload macOS release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-macos
+          path: build-macos/dist/*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    name: Build Windows x64 standalone EXEs
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: C:\vcpkg
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build standalone EXEs
+        shell: cmd
+        run: scripts\windows\build-x64.cmd
+
+      - name: Verify release assets
+        shell: pwsh
+        run: |
+          $assets = @(Get-ChildItem -Path "build-windows/dist" -Filter "*-windows-x64.exe")
+          if ($assets.Count -ne 2) {
+            throw "Expected two Windows x64 EXEs, found $($assets.Count)"
+          }
+
+          $expectedNames = @("DiggingJim-", "DiggingJimBuilder-")
+          foreach ($prefix in $expectedNames) {
+            if (-not ($assets.Name -like "$prefix*")) {
+              throw "Missing Windows release asset with prefix: $prefix"
+            }
+          }
+
+          foreach ($asset in $assets) {
+            $path = $asset.FullName
+            $size = (Get-Item $path).Length
+            if ($size -lt 10MB) {
+              throw "Windows release asset is unexpectedly small: $path ($size bytes)"
+            }
+          }
+
+      - name: Upload Windows release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-windows
+          path: build-windows/dist/*-windows-x64.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish standalone release assets
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download built release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: standalone-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh release-assets
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -94,6 +94,18 @@ jobs:
         shell: cmd
         run: scripts\windows\build-x64.cmd
 
+      - name: Run movement ordering unit tests
+        shell: pwsh
+        run: |
+          cmake --build build-windows --target MovementInputTests --config Release
+          $testExe = Get-ChildItem -Path "build-windows" -Filter "MovementInputTests.exe" -Recurse | Select-Object -First 1
+          if ($testExe) {
+            Write-Host "Running $($testExe.FullName)..."
+            & $testExe.FullName
+          } else {
+            throw "MovementInputTests.exe was not found"
+          }
+
       - name: Verify release assets
         shell: pwsh
         run: |
@@ -121,7 +133,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: standalone-windows
-          path: build-windows/dist/*-windows-x64.exe
+          path: |
+            build-windows/dist/*-windows-x64.exe
+            build-windows/dist/*.zip
           if-no-files-found: error
           retention-days: 7
 

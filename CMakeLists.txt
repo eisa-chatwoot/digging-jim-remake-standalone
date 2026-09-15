@@ -87,8 +87,14 @@ add_subdirectory(lib)
 add_subdirectory(game)
 add_subdirectory(editor)
 
+enable_testing()
+add_executable(MovementInputTests tests/test_movement_input.cpp)
+target_link_libraries(MovementInputTests PRIVATE DiggingJimLib)
+add_test(NAME MovementInputTests COMMAND MovementInputTests)
+
 if(APPLE)
     digging_jim_add_macos_deployment_target(DiggingJim DiggingJimBuilder)
 elseif(WIN32)
     digging_jim_configure_windows_bundle(DiggingJim DiggingJimBuilder)
 endif()
+

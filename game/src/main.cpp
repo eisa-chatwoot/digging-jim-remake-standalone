@@ -1,11 +1,23 @@
 #include "Game/Game.h"
+#include "Utils/Paths.h"
+#include <clocale>
 #include <string>
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <filesystem>
 #endif
 
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+    std::setlocale(LC_ALL, ".UTF-8");
+    SetCurrentDirectoryW(Paths::executableDirectory().c_str());
+#else
+    std::error_code ec;
+    std::filesystem::current_path(Paths::executableDirectory(), ec);
+#endif
+
     std::string caveFile      = "";
     int         startCave     = 1;
     bool        editorMode    = false;
@@ -26,7 +38,9 @@ int main(int argc, char* argv[])
     if (!game.run(caveFile, startCave, editorMode, fullscreen, developerMode))
     {
 #ifdef _WIN32
-        MessageBoxA(nullptr, game.lastError().c_str(), "DiggingJim - Fatal Error", MB_OK | MB_ICONERROR);
+        const std::string err = game.lastError();
+        const std::wstring werr(err.begin(), err.end());
+        MessageBoxW(nullptr, werr.c_str(), L"DiggingJim - Fatal Error", MB_OK | MB_ICONERROR);
 #endif
         return 1;
     }

@@ -20,8 +20,22 @@ namespace {
 std::filesystem::path normalisePath(const std::filesystem::path& path)
 {
     std::error_code error;
-    const auto canonical = std::filesystem::weakly_canonical(path, error);
-    return error ? path : canonical;
+    auto canonical = std::filesystem::weakly_canonical(path, error);
+    if (error)
+        canonical = path.lexically_normal();
+
+#ifdef _WIN32
+    // If weakly_canonical returned an extended-length Win32 prefix (\\?\),
+    // strip it when safe so standard C runtime (fopen, std::ifstream) and
+    // third-party loaders (SFML, stb) can open the path without error.
+    std::wstring str = canonical.wstring();
+    if (str.rfind(L"\\\\?\\", 0) == 0)
+    {
+        if (str.size() >= 6 && str[5] == L':' && (str[6] == L'\\' || str[6] == L'/'))
+            canonical = std::filesystem::path(str.substr(4));
+    }
+#endif
+    return canonical;
 }
 
 bool pathExists(const std::filesystem::path& path)
@@ -61,9 +75,7 @@ std::filesystem::path Paths::executablePath()
     }
 #endif
 
-    std::error_code error;
-    const auto workingDirectory = std::filesystem::current_path(error);
-    return error ? std::filesystem::path{} : workingDirectory / "DiggingJim";
+    return std::filesystem::path("DiggingJim");
 }
 
 std::filesystem::path Paths::executableDirectory()
@@ -84,8 +96,7 @@ std::filesystem::path Paths::assetsDirectory()
     if (pathExists(adjacentAssets))
         return adjacentAssets;
 
-    std::error_code error;
-    return std::filesystem::current_path(error) / "assets";
+    return adjacentAssets;
 }
 
 std::filesystem::path Paths::assetPath(const std::string_view relativePath)
@@ -96,8 +107,8 @@ std::filesystem::path Paths::assetPath(const std::string_view relativePath)
 std::filesystem::path Paths::userDataDirectory()
 {
 #ifdef _WIN32
-    if (const char* appData = std::getenv("APPDATA"); appData && *appData)
-        return std::filesystem::path(appData) / "Digging Jim";
+    if (const wchar_t* appData = _wgetenv(L"APPDATA"); appData && *appData)
+        return std::filesystem::path(appData) / L"Digging Jim";
 #elif defined(__APPLE__)
     if (const char* home = std::getenv("HOME"); home && *home)
         return std::filesystem::path(home) / "Library" / "Application Support" / "Digging Jim";

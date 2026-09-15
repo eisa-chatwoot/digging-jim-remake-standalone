@@ -8,23 +8,30 @@ void Cave::Map::updateJim(const int& index) {
 	}
 	updateEntityAnimation(index);
 
-	if (m_game->inputSystem.isPressed(Input::Action::MoveUp)) {
-		updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::UP, Cave::Entity::Trait::WarpableUp);
-	}
-	else if (m_game->inputSystem.isPressed(Input::Action::MoveDown)) {
-		updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::DOWN, Cave::Entity::Trait::WarpableDown);
-	}
-	else if (m_game->inputSystem.isPressed(Input::Action::MoveRight)) {
-		updateJimMovement(index, Cave::Entity::Facing::RIGHT, Cave::Entity::Direction::RIGHT, Cave::Entity::Trait::WarpableRight);
-	}
-	else if (m_game->inputSystem.isPressed(Input::Action::MoveLeft)) {
-		updateJimMovement(index, Cave::Entity::Facing::LEFT, Cave::Entity::Direction::LEFT, Cave::Entity::Trait::WarpableLeft);
+	const auto move = m_game->inputSystem.getMovementDirection();
+	if (move.has_value()) {
+		switch (move.value()) {
+		case Input::Action::MoveUp:
+			updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::UP, Cave::Entity::Trait::WarpableUp);
+			break;
+		case Input::Action::MoveDown:
+			updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::DOWN, Cave::Entity::Trait::WarpableDown);
+			break;
+		case Input::Action::MoveRight:
+			updateJimMovement(index, Cave::Entity::Facing::RIGHT, Cave::Entity::Direction::RIGHT, Cave::Entity::Trait::WarpableRight);
+			break;
+		case Input::Action::MoveLeft:
+			updateJimMovement(index, Cave::Entity::Facing::LEFT, Cave::Entity::Direction::LEFT, Cave::Entity::Trait::WarpableLeft);
+			break;
+		default:
+			updateJimIdle(index);
+			break;
+		}
 	}
 	else {
 		updateJimIdle(index);
 	}
 }
-
 void Cave::Map::updateJimIdle(const int& index) {
 	if (getEntityAnimation(index) == Cave::Entity::Jim::idleAnimation()) {
 		if (Utils::randomInteger(0, 63) == 0) setEntityAnimation(index, Cave::Entity::Jim::blinkAnimation());

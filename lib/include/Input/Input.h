@@ -3,6 +3,8 @@
 #include <SFML/Window.hpp>
 #include <unordered_map>
 #include <set>
+#include <vector>
+#include <optional>
 
 namespace Input {
 
@@ -144,6 +146,16 @@ namespace Input {
          */
         void detectJoystick();
 
+        /**
+         * @brief Get the currently active cardinal movement direction.
+         *
+         * Returns the most recently pressed movement direction among those currently held (LIFO order).
+         * If no movement action is held, returns std::nullopt.
+         *
+         * @return std::optional<Input::Action> The active movement action or std::nullopt.
+         */
+        std::optional<Input::Action> getMovementDirection() const;
+
     private:
         /// @brief Mapping of keyboard keys to actions.
         std::unordered_map<sf::Keyboard::Scan, Action> m_keyMap = {
@@ -218,5 +230,20 @@ namespace Input {
         /// @brief Joystick axis for movement.
         sf::Joystick::Axis m_horizontalAxis = sf::Joystick::Axis::X;
         sf::Joystick::Axis m_verticalAxis = sf::Joystick::Axis::Y;
+
+        /// @brief Check if an action is one of the four cardinal movement directions.
+        static bool isMovementAction(Input::Action action);
+
+        /// @brief Push a movement action to the top of the active movement order.
+        void pushMovementAction(Input::Action action);
+
+        /// @brief Remove a movement action from the active movement order.
+        void popMovementAction(Input::Action action);
+
+        /// @brief Set of currently held keyboard scancodes.
+        std::set<sf::Keyboard::Scan> m_heldScancodes;
+
+        /// @brief Active movement actions ordered by press time (most recently pressed is at the back).
+        std::vector<Input::Action> m_movementOrder;
     };
 }

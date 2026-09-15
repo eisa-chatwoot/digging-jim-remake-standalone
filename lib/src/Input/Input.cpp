@@ -1,20 +1,71 @@
 #include "Input/Input.h"
+#include <algorithm>
+
+bool Input::System::isMovementAction(Input::Action action) {
+    return action == Input::Action::MoveUp ||
+           action == Input::Action::MoveDown ||
+           action == Input::Action::MoveLeft ||
+           action == Input::Action::MoveRight;
+}
+
+void Input::System::pushMovementAction(Input::Action action) {
+    if (!isMovementAction(action)) return;
+    auto it = std::find(m_movementOrder.begin(), m_movementOrder.end(), action);
+    if (it != m_movementOrder.end()) {
+        m_movementOrder.erase(it);
+    }
+    m_movementOrder.push_back(action);
+}
+
+void Input::System::popMovementAction(Input::Action action) {
+    m_movementOrder.erase(
+        std::remove(m_movementOrder.begin(), m_movementOrder.end(), action),
+        m_movementOrder.end()
+    );
+}
+
+std::optional<Input::Action> Input::System::getMovementDirection() const {
+    for (auto it = m_movementOrder.rbegin(); it != m_movementOrder.rend(); ++it) {
+        if (isPressed(*it)) {
+            return *it;
+        }
+    }
+    return std::nullopt;
+}
 
 void Input::System::handleEvent(const sf::Event& event) {
 
     if (const auto keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+        m_heldScancodes.insert(keyPressed->scancode);
         for (auto& [key, action] : m_keyMap) {
             if (keyPressed->scancode == key) {
+                const bool wasHeld = m_heldActions.count(action) > 0;
                 m_pressedActions.insert(action);
                 m_heldActions.insert(action);
+                if (isMovementAction(action) && !wasHeld) {
+                    pushMovementAction(action);
+                }
                 m_keyboardEventOccurred = true;
             }
         }
     }
-    if (const auto keyPressed = event.getIf<sf::Event::KeyReleased>()) {
+    if (const auto keyReleased = event.getIf<sf::Event::KeyReleased>()) {
+        m_heldScancodes.erase(keyReleased->scancode);
         for (auto& [key, action] : m_keyMap) {
-            if (keyPressed->scancode == key) {
-                m_heldActions.erase(action);
+            if (keyReleased->scancode == key) {
+                bool stillHeld = false;
+                for (const auto& [otherKey, otherAction] : m_keyMap) {
+                    if (otherAction == action && m_heldScancodes.count(otherKey)) {
+                        stillHeld = true;
+                        break;
+                    }
+                }
+                if (!stillHeld) {
+                    m_heldActions.erase(action);
+                    if (isMovementAction(action)) {
+                        popMovementAction(action);
+                    }
+                }
                 m_keyboardEventOccurred = true;
             }
         }
@@ -44,29 +95,26 @@ void Input::System::handleJoystick() {
     float x = sf::Joystick::getAxisPosition(m_joystickId, m_horizontalAxis);
     float y = sf::Joystick::getAxisPosition(m_joystickId, m_verticalAxis);
 
-    if (x < -m_deadzone) {
-        if (!isPressed(Action::MoveLeft)) m_pressedActions.insert(Action::MoveLeft);
-        m_heldActions.insert(Action::MoveLeft);
-    }
-    else m_heldActions.erase(Action::MoveLeft);
+    auto updateJoyDir = [this](Action dir, bool active) {
+        if (active) {
+            if (!isPressed(dir)) {
+                m_pressedActions.insert(dir);
+                m_heldActions.insert(dir);
+                pushMovementAction(dir);
+            }
+        }
+        else {
+            if (isPressed(dir)) {
+                m_heldActions.erase(dir);
+                popMovementAction(dir);
+            }
+        }
+    };
 
-    if (x > m_deadzone) {
-        if (!isPressed(Action::MoveRight)) m_pressedActions.insert(Action::MoveRight);
-        m_heldActions.insert(Action::MoveRight);
-    }
-    else m_heldActions.erase(Action::MoveRight);
-
-    if (y < -m_deadzone) {
-        if (!isPressed(Action::MoveUp)) m_pressedActions.insert(Action::MoveUp);
-        m_heldActions.insert(Action::MoveUp);
-    }
-    else m_heldActions.erase(Action::MoveUp);
-
-    if (y > m_deadzone) {
-        if (!isPressed(Action::MoveDown)) m_pressedActions.insert(Action::MoveDown);
-        m_heldActions.insert(Action::MoveDown);
-    }
-    else m_heldActions.erase(Action::MoveDown);
+    updateJoyDir(Action::MoveLeft, x < -m_deadzone);
+    updateJoyDir(Action::MoveRight, x > m_deadzone);
+    updateJoyDir(Action::MoveUp, y < -m_deadzone);
+    updateJoyDir(Action::MoveDown, y > m_deadzone);
 
     for (auto& [button, action] : m_joystickButtonMap) {
         if (sf::Joystick::isButtonPressed(m_joystickId, button)) {
@@ -82,6 +130,12 @@ void Input::System::handleJoystick() {
 }
 
 void Input::System::update() {
+    m_movementOrder.erase(
+        std::remove_if(m_movementOrder.begin(), m_movementOrder.end(),
+            [this](Input::Action a) { return !isPressed(a); }),
+        m_movementOrder.end()
+    );
+
     bool movementPressed = (isPressed(Input::Action::MoveLeft)
         || isPressed(Input::Action::MoveRight)
         || isPressed(Input::Action::MoveUp)

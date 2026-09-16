@@ -15,6 +15,8 @@ void Input::System::pushMovementAction(Input::Action action) {
         m_movementOrder.erase(it);
     }
     m_movementOrder.push_back(action);
+    m_pressTimes[action] = getCurrentTime();
+    m_stepCounts[action] = 0;
 }
 
 void Input::System::popMovementAction(Input::Action action) {
@@ -22,12 +24,29 @@ void Input::System::popMovementAction(Input::Action action) {
         std::remove(m_movementOrder.begin(), m_movementOrder.end(), action),
         m_movementOrder.end()
     );
+    m_pressTimes.erase(action);
+    m_stepCounts.erase(action);
 }
 
 std::optional<Input::Action> Input::System::getMovementDirection() const {
+    const auto now = getCurrentTime();
     for (auto it = m_movementOrder.rbegin(); it != m_movementOrder.rend(); ++it) {
         if (isPressed(*it)) {
-            return *it;
+            auto countIt = m_stepCounts.find(*it);
+            unsigned int stepCount = (countIt != m_stepCounts.end()) ? countIt->second : 0;
+            if (stepCount == 0) {
+                return *it;
+            }
+            auto timeIt = m_pressTimes.find(*it);
+            if (timeIt != m_pressTimes.end()) {
+                auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - timeIt->second).count();
+                if (elapsedMs >= static_cast<long long>(m_initialHoldDelayMs)) {
+                    return *it;
+                }
+            } else {
+                return *it;
+            }
+            return std::nullopt;
         }
     }
     return std::nullopt;
@@ -132,7 +151,14 @@ void Input::System::handleJoystick() {
 void Input::System::update() {
     m_movementOrder.erase(
         std::remove_if(m_movementOrder.begin(), m_movementOrder.end(),
-            [this](Input::Action a) { return !isPressed(a); }),
+            [this](Input::Action a) {
+                if (!isPressed(a)) {
+                    m_pressTimes.erase(a);
+                    m_stepCounts.erase(a);
+                    return true;
+                }
+                return false;
+            }),
         m_movementOrder.end()
     );
 
@@ -180,4 +206,37 @@ void Input::System::detectJoystick() {
             break;
         }
     }
+}
+
+unsigned int Input::System::getInitialHoldDelayMs() const {
+    return m_initialHoldDelayMs;
+}
+
+void Input::System::setInitialHoldDelayMs(unsigned int ms) {
+    m_initialHoldDelayMs = ms;
+}
+
+void Input::System::onMovementStepStarted(Input::Action action) {
+    if (isMovementAction(action)) {
+        m_stepCounts[action]++;
+    }
+}
+
+void Input::System::setSimulatedTime(std::optional<std::chrono::steady_clock::time_point> time) {
+    m_simulatedTime = time;
+}
+
+void Input::System::advanceSimulatedTime(std::chrono::milliseconds dt) {
+    if (m_simulatedTime.has_value()) {
+        m_simulatedTime = m_simulatedTime.value() + dt;
+    } else {
+        m_simulatedTime = std::chrono::steady_clock::now() + dt;
+    }
+}
+
+std::chrono::steady_clock::time_point Input::System::getCurrentTime() const {
+    if (m_simulatedTime.has_value()) {
+        return m_simulatedTime.value();
+    }
+    return std::chrono::steady_clock::now();
 }

@@ -621,9 +621,9 @@ namespace Cave {
          * @param index The entity index representing Jim.
          * @param facing The facing direction to apply (LEFT, RIGHT, or NEUTRAL).
          * @param direction The movement direction (UP, DOWN, LEFT, RIGHT).
-         * @param warpTrait The warp trait corresponding to the movement direction.
+         * @return bool True if a new grid-cell movement was initiated, false otherwise.
          */
-        void updateJimMovement(const int& index, const Cave::Entity::Facing& facing, const Cave::Entity::Direction& direction, const Cave::Entity::Trait& warpTrait);
+        bool updateJimMovement(const int& index, const Cave::Entity::Facing& facing, const Cave::Entity::Direction& direction, const Cave::Entity::Trait& warpTrait);
         
         /**
          * @brief Updates Jim�s facing direction.

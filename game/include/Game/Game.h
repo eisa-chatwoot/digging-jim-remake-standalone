@@ -58,6 +58,7 @@ public:
      *     joystickControl = bool
      *     fixedColours = bool
      *     setRefreshRateOnStart = bool
+     *     framerateLimit = unsigned int (1 - 240, default 50)
      *
      * Lines starting with '#' or ';' are treated as comments. Blank lines ignored.
      */

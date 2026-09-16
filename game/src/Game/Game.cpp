@@ -925,7 +925,7 @@ void Game::checkExtraLife() {
 }
 
 void Game::setRefreshrate() {
-    window.setFramerateLimit(64);
+    window.setFramerateLimit(m_settings.framerateLimit);
 }
 
 GameSettings Game::getGameOptions() const {
@@ -936,6 +936,7 @@ void Game::commitGameOptions(const GameSettings& options) {
     bool startMusic = !m_settings.audio && options.audio;
     bool stopMusic = m_settings.audio && !options.audio;
     m_settings = options;
+    setRefreshrate();
     inputSystem.setJoystick(options.joystickControl);
     soundManager.setVolume(options.audioVolume);
     if (startMusic) sendSignal(GameSignal::StartMusic);

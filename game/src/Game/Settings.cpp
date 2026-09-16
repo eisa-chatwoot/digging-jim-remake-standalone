@@ -77,6 +77,13 @@ GameSettings Game::loadGameOptionsFromFile(const std::string& path) {
         else if (key == "setrefreshrateonstart" || key == "set_refresh_rate_on_start") {
             opts.setRefreshRateOnStart = parseBoolToken(val);
         }
+        else if (key == "frameratelimit" || key == "framerate_limit" || key == "framerate" || key == "fps") {
+            int v = 0;
+            std::istringstream ss(val);
+            if (ss >> v && v > 0 && v <= 240) {
+                opts.framerateLimit = static_cast<unsigned int>(v);
+            }
+        }
         // unknown keys are ignored
     }
 
@@ -103,6 +110,7 @@ bool Game::saveGameOptionsToFile(const GameSettings& opts, const std::string& pa
         out << "joystickControl = " << (opts.joystickControl ? "true" : "false") << "\n";
         out << "fixedColours = " << (opts.fixedColours ? "true" : "false") << "\n";
         out << "setRefreshRateOnStart = " << (opts.setRefreshRateOnStart ? "true" : "false") << "\n";
+        out << "framerateLimit = " << opts.framerateLimit << "\n";
 
         return true;
     }

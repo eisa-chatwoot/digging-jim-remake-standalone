@@ -24,13 +24,22 @@ void Input::System::popMovementAction(Input::Action action) {
     );
 }
 
-std::optional<Input::Action> Input::System::getMovementDirection() const {
+std::optional<Input::Action> Input::System::getMovementDirection() {
+    if (m_pendingMovementAction.has_value()) {
+        const auto dir = m_pendingMovementAction.value();
+        m_pendingMovementAction = std::nullopt;
+        return dir;
+    }
     for (auto it = m_movementOrder.rbegin(); it != m_movementOrder.rend(); ++it) {
         if (isPressed(*it)) {
             return *it;
         }
     }
     return std::nullopt;
+}
+
+void Input::System::clearPendingMovement() {
+    m_pendingMovementAction = std::nullopt;
 }
 
 void Input::System::handleEvent(const sf::Event& event) {
@@ -44,6 +53,7 @@ void Input::System::handleEvent(const sf::Event& event) {
                 m_heldActions.insert(action);
                 if (isMovementAction(action) && !wasHeld) {
                     pushMovementAction(action);
+                    m_pendingMovementAction = action;
                 }
                 m_keyboardEventOccurred = true;
             }
@@ -101,6 +111,7 @@ void Input::System::handleJoystick() {
                 m_pressedActions.insert(dir);
                 m_heldActions.insert(dir);
                 pushMovementAction(dir);
+                m_pendingMovementAction = dir;
             }
         }
         else {

@@ -156,10 +156,12 @@ void Game::handleCavePlay(const GameSignal& signal) {
     case GameSignal::CavePass:
         recordCaveCompletion();
         m_gameState = GameState::CavePass;
+        inputSystem.clearPendingMovement();
         break;
 
     case GameSignal::CaveFail:
         m_gameState = GameState::CaveFail;
+        inputSystem.clearPendingMovement();
         break;
 
     case GameSignal::CollectDiamond:
@@ -169,6 +171,7 @@ void Game::handleCavePlay(const GameSignal& signal) {
 
     case GameSignal::CavePause:
         m_gameIsPaused = true;
+        inputSystem.clearPendingMovement();
         break;
 
     case GameSignal::CaveUnpause:
@@ -816,11 +819,13 @@ void Game::resetCaveState() {
     m_time = initialCaveTime();
     m_collected = 0;
     m_gameIsPaused = false;
+    inputSystem.clearPendingMovement();
 }
 
 void Game::resetGame() {
     m_lives = INITIAL_LIVES;
     m_score = 0;
+    inputSystem.clearPendingMovement();
 }
 
 void Game::loadGameProgress()

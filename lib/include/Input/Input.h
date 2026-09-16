@@ -154,7 +154,24 @@ namespace Input {
          *
          * @return std::optional<Input::Action> The active movement action or std::nullopt.
          */
-        std::optional<Input::Action> getMovementDirection() const;
+        /**
+         * @brief Get and consume the active cardinal movement direction.
+         *
+         * If a one-shot pending directional press exists (e.g. from a short tap between ticks),
+         * it is consumed and returned.
+         * Otherwise, returns the most recently pressed movement direction among those currently held (LIFO order).
+         * If no movement action is held or pending, returns std::nullopt.
+         *
+         * @return std::optional<Input::Action> The active movement action or std::nullopt.
+         */
+        std::optional<Input::Action> getMovementDirection();
+
+        /**
+         * @brief Clear any pending one-shot movement buffer.
+         *
+         * Called on cave restart, player death, pause, or game state transitions.
+         */
+        void clearPendingMovement();
 
     private:
         /// @brief Mapping of keyboard keys to actions.
@@ -245,5 +262,8 @@ namespace Input {
 
         /// @brief Active movement actions ordered by press time (most recently pressed is at the back).
         std::vector<Input::Action> m_movementOrder;
+
+        /// @brief One-shot pending movement action from the most recent directional keypress.
+        std::optional<Input::Action> m_pendingMovementAction;
     };
 }

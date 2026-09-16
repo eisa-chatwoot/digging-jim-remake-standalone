@@ -222,6 +222,15 @@ void Input::System::onMovementStepStarted(Input::Action action) {
     }
 }
 
+void Input::System::onMovementStepStarted() {
+    for (auto it = m_movementOrder.rbegin(); it != m_movementOrder.rend(); ++it) {
+        if (isPressed(*it)) {
+            onMovementStepStarted(*it);
+            return;
+        }
+    }
+}
+
 void Input::System::setSimulatedTime(std::optional<std::chrono::steady_clock::time_point> time) {
     m_simulatedTime = time;
 }

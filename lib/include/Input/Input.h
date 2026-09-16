@@ -1,7 +1,6 @@
 #pragma once
 
 #include <SFML/Window.hpp>
-#include <chrono>
 #include <unordered_map>
 #include <set>
 #include <vector>
@@ -157,53 +156,6 @@ namespace Input {
          */
         std::optional<Input::Action> getMovementDirection() const;
 
-        /**
-         * @brief Default initial hold delay in milliseconds before a held movement key begins continuous repeat.
-         */
-        static constexpr unsigned int INITIAL_HOLD_DELAY_MS = 150;
-
-        /**
-         * @brief Get the configured initial hold delay in milliseconds.
-         */
-        unsigned int getInitialHoldDelayMs() const;
-
-        /**
-         * @brief Set the initial hold delay in milliseconds.
-         */
-        void setInitialHoldDelayMs(unsigned int ms);
-
-        /**
-         * @brief Notify the input system that a grid-cell movement step has been initiated for an action.
-         *
-         * Increments the movement step count for this action so that subsequent steps from the same press
-         * are gated behind the initial hold delay.
-         *
-         * @param action The movement action that started a step.
-         */
-        void onMovementStepStarted(Input::Action action);
-
-        /**
-         * @brief Notify the input system that a grid-cell movement step has been initiated for the active movement action.
-         */
-        void onMovementStepStarted();
-
-        /**
-         * @brief Set an explicit simulated time point for deterministic testing.
-         *
-         * If std::nullopt is passed, real wall-clock time (std::chrono::steady_clock) is used.
-         */
-        void setSimulatedTime(std::optional<std::chrono::steady_clock::time_point> time);
-
-        /**
-         * @brief Advance simulated time by the given duration (for deterministic testing).
-         */
-        void advanceSimulatedTime(std::chrono::milliseconds dt);
-
-        /**
-         * @brief Get the current time point (either simulated or std::chrono::steady_clock::now()).
-         */
-        std::chrono::steady_clock::time_point getCurrentTime() const;
-
     private:
         /// @brief Mapping of keyboard keys to actions.
         std::unordered_map<sf::Keyboard::Scan, Action> m_keyMap = {
@@ -293,17 +245,5 @@ namespace Input {
 
         /// @brief Active movement actions ordered by press time (most recently pressed is at the back).
         std::vector<Input::Action> m_movementOrder;
-
-        /// @brief Initial hold delay before repeating directional movement.
-        unsigned int m_initialHoldDelayMs = INITIAL_HOLD_DELAY_MS;
-
-        /// @brief Press timestamp for each active movement action.
-        std::unordered_map<Action, std::chrono::steady_clock::time_point> m_pressTimes;
-
-        /// @brief Number of grid movement steps executed during the current press of each action.
-        std::unordered_map<Action, unsigned int> m_stepCounts;
-
-        /// @brief Optional simulated time for testing.
-        std::optional<std::chrono::steady_clock::time_point> m_simulatedTime;
     };
 }

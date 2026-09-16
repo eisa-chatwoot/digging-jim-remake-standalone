@@ -10,26 +10,22 @@ void Cave::Map::updateJim(const int& index) {
 
 	const auto move = m_game->inputSystem.getMovementDirection();
 	if (move.has_value()) {
-		bool moved = false;
 		switch (move.value()) {
 		case Input::Action::MoveUp:
-			moved = updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::UP, Cave::Entity::Trait::WarpableUp);
+			updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::UP, Cave::Entity::Trait::WarpableUp);
 			break;
 		case Input::Action::MoveDown:
-			moved = updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::DOWN, Cave::Entity::Trait::WarpableDown);
+			updateJimMovement(index, Cave::Entity::Facing::NEUTRAL, Cave::Entity::Direction::DOWN, Cave::Entity::Trait::WarpableDown);
 			break;
 		case Input::Action::MoveRight:
-			moved = updateJimMovement(index, Cave::Entity::Facing::RIGHT, Cave::Entity::Direction::RIGHT, Cave::Entity::Trait::WarpableRight);
+			updateJimMovement(index, Cave::Entity::Facing::RIGHT, Cave::Entity::Direction::RIGHT, Cave::Entity::Trait::WarpableRight);
 			break;
 		case Input::Action::MoveLeft:
-			moved = updateJimMovement(index, Cave::Entity::Facing::LEFT, Cave::Entity::Direction::LEFT, Cave::Entity::Trait::WarpableLeft);
+			updateJimMovement(index, Cave::Entity::Facing::LEFT, Cave::Entity::Direction::LEFT, Cave::Entity::Trait::WarpableLeft);
 			break;
 		default:
 			updateJimIdle(index);
 			break;
-		}
-		if (moved) {
-			m_game->inputSystem.onMovementStepStarted(move.value());
 		}
 	}
 	else {
@@ -50,23 +46,21 @@ void Cave::Map::updateJimIdle(const int& index) {
 	setEntityFacing(index, Cave::Entity::Facing::NEUTRAL);
 }
 
-bool Cave::Map::updateJimMovement(const int& index, const Cave::Entity::Facing& facing, const Cave::Entity::Direction& direction, const Cave::Entity::Trait& warpTrait) {
+void Cave::Map::updateJimMovement(const int& index, const Cave::Entity::Facing& facing, const Cave::Entity::Direction& direction, const Cave::Entity::Trait& warpTrait) {
 	bool collectMode = m_game->inputSystem.isPressed(Input::Action::Collect);
 	int inFront = getIndex(index, direction);
 
-	if (handleJimComplete(index, inFront)) return true;
+	if (handleJimComplete(index, inFront)) return;
 
 	updateJimFacing(index, inFront, collectMode, facing);
 
-	if (handleJimTubeWarp(index, inFront, collectMode, direction, warpTrait)) return !collectMode;
+	if (handleJimTubeWarp(index, inFront, collectMode, direction, warpTrait)) return;
 
-	if (handleJimPushDetonator(index, inFront)) return false;
+	if (handleJimPushDetonator(index, inFront)) return;
 
-	if (handleJimPush(index, inFront, collectMode, direction)) return !collectMode;
+	if (handleJimPush(index, inFront, collectMode, direction)) return;
 
-	if (handleJimTraverse(index, inFront, collectMode, facing, direction)) return !collectMode;
-
-	return false;
+	if (handleJimTraverse(index, inFront, collectMode, facing, direction)) return;
 }
 
 void Cave::Map::updateJimFacing(const int& index, const int& inFront, const bool& collectMode, const Cave::Entity::Facing& facing) {
